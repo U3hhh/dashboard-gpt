@@ -30,6 +30,7 @@ export default function GroupsPage() {
     const [availableSubscribers, setAvailableSubscribers] = useState<any[]>([]);
     const [memberLoading, setMemberLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [saving, setSaving] = useState(false);
 
     const t = {
         title: language === 'ar' ? 'المجموعات' : 'Groups',
