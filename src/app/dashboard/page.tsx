@@ -93,7 +93,7 @@ export default function DashboardPage() {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [activity, setActivity] = useState<ActivityLog[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showRevenue, setShowRevenue] = useState(true);
+    const [showRevenue, setShowRevenue] = useState(false);
 
     useEffect(() => {
         // Fetch dashboard stats

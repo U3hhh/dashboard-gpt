@@ -46,18 +46,14 @@ export async function GET() {
             .eq('organization_id', orgId)
             .eq('payment_status', 'unpaid');
 
-        // Get monthly revenue (sum of payments this month)
-        const monthStart = toISODate(startOfMonth());
-        const monthEnd = toISODate(endOfMonth());
-
-        const { data: monthlyPayments } = await supabase
-            .from('payments')
-            .select('amount')
+        // Get monthly revenue (sum of active subscriptions price)
+        const { data: activeSubs } = await supabase
+            .from('subscriptions')
+            .select('price')
             .eq('organization_id', orgId)
-            .gte('paid_at', monthStart)
-            .lte('paid_at', monthEnd);
+            .eq('status', 'active');
 
-        const monthlyRevenue = monthlyPayments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+        const monthlyRevenue = activeSubs?.reduce((sum, sub) => sum + Number(sub.price), 0) || 0;
 
         // Get subscriptions expiring in next 7 days
         const today = toISODate(new Date());

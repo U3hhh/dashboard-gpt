@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLanguage, formatIQD, formatDate } from '@/lib/i18n';
@@ -93,6 +93,28 @@ export default function SubscriptionsPage() {
                 setLoading(false);
             });
     }, [page, filter]);
+
+    // Group subscriptions by subscriber
+    const groupedSubscriptions = useMemo(() => {
+        const groups: Record<string, Subscription[]> = {};
+        subscriptions.forEach(sub => {
+            const subscriberId = sub.subscriber?.id || 'unknown';
+            if (!groups[subscriberId]) {
+                groups[subscriberId] = [];
+            }
+            groups[subscriberId].push(sub);
+        });
+
+        return Object.values(groups).map(group => {
+            // Sort by end_date descending to get the latest
+            group.sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime());
+            return {
+                latest: group[0],
+                count: group.length,
+                all: group
+            };
+        });
+    }, [subscriptions]);
 
     const getStatusBadge = (status: string) => {
         const badges: Record<string, { class: string; label: string }> = {
@@ -190,16 +212,31 @@ export default function SubscriptionsPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {subscriptions.map((sub) => {
+                            {groupedSubscriptions.map((group) => {
+                                const sub = group.latest;
                                 const statusBadge = getStatusBadge(sub.status);
                                 const paymentBadge = getPaymentBadge(sub.payment_status);
                                 return (
                                     <tr key={sub.id}>
                                         <td>
                                             <div className={styles.subscriber}>
-                                                <span className={styles.subscriberName}>
-                                                    {sub.subscriber?.name || 'Unknown'}
-                                                </span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <span className={styles.subscriberName}>
+                                                        {sub.subscriber?.name || 'Unknown'}
+                                                    </span>
+                                                    {group.count > 1 && (
+                                                        <span style={{
+                                                            fontSize: '0.7rem',
+                                                            background: 'var(--color-primary)',
+                                                            color: 'white',
+                                                            padding: '0.1rem 0.4rem',
+                                                            borderRadius: '1rem',
+                                                            fontWeight: 'bold'
+                                                        }}>
+                                                            {group.count}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <span className={styles.subscriberEmail}>
                                                     {sub.subscriber?.email || ''}
                                                 </span>

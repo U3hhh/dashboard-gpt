@@ -225,7 +225,16 @@ export default function SubscribersPage() {
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            {/* Actions removed as per request */}
+                                            <Link href={`/dashboard/subscribers/${sub.id}`} className={styles.viewBtn} title={t('common.view')}>
+                                                {language === 'ar' ? 'عرض' : 'View'}
+                                            </Link>
+                                            <button
+                                                onClick={() => handleDelete(sub.id)}
+                                                className={styles.deleteBtn}
+                                                title={t('common.delete')}
+                                            >
+                                                {language === 'ar' ? 'حذف' : 'Delete'}
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
