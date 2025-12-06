@@ -4,23 +4,45 @@ import { authenticate } from '@/lib/supabase/middleware';
 import { getPaginationParams, createPaginatedResponse, getSupabaseRange } from '@/lib/utils/pagination';
 import { logActivity, ActivityActions } from '@/lib/utils/activity-logger';
 import type { CreateSubscriptionInput } from '@/lib/types/database';
+import { isMockMode, mockSubscriptions } from '@/lib/mock-data';
 
 // GET /api/subscriptions - List subscriptions with pagination and filtering
 export async function GET(request: NextRequest) {
     try {
+        const { searchParams } = new URL(request.url);
+        const status = searchParams.get('status');
+        const page = parseInt(searchParams.get('page') || '1');
+        const limit = parseInt(searchParams.get('limit') || '10');
+
+        // Return mock data if Supabase is not configured
+        if (isMockMode()) {
+            let filtered = [...mockSubscriptions];
+            if (status) {
+                filtered = filtered.filter(s => s.status === status);
+            }
+            const start = (page - 1) * limit;
+            const paged = filtered.slice(start, start + limit);
+            return NextResponse.json({
+                data: paged,
+                total: filtered.length,
+                page,
+                limit,
+                totalPages: Math.ceil(filtered.length / limit),
+            });
+        }
+
         const authResult = await authenticate();
 
         if (!authResult.success) {
             return authResult.error;
         }
 
+
         const supabase = await createClient();
-        const { searchParams } = new URL(request.url);
         const paginationParams = getPaginationParams(searchParams);
         const { from, to } = getSupabaseRange(paginationParams);
 
-        // Filter options
-        const status = searchParams.get('status');
+        // Filter options (status already defined above)
         const paymentStatus = searchParams.get('payment_status');
         const subscriberId = searchParams.get('subscriber_id');
 

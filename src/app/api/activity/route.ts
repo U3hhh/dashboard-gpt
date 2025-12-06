@@ -2,10 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticate } from '@/lib/supabase/middleware';
 import { getPaginationParams, createPaginatedResponse, getSupabaseRange } from '@/lib/utils/pagination';
+import { isMockMode, mockActivity } from '@/lib/mock-data';
 
 // GET /api/activity - List activity logs with filtering
 export async function GET(request: NextRequest) {
     try {
+        const { searchParams } = new URL(request.url);
+        const limit = parseInt(searchParams.get('limit') || '10');
+
+        // Return mock data if Supabase is not configured
+        if (isMockMode()) {
+            return NextResponse.json({
+                data: mockActivity.slice(0, limit),
+                total: mockActivity.length,
+                page: 1,
+                limit,
+                totalPages: 1,
+            });
+        }
+
         const authResult = await authenticate();
 
         if (!authResult.success) {
@@ -13,7 +28,6 @@ export async function GET(request: NextRequest) {
         }
 
         const supabase = await createClient();
-        const { searchParams } = new URL(request.url);
         const paginationParams = getPaginationParams(searchParams);
         const { from, to } = getSupabaseRange(paginationParams);
 

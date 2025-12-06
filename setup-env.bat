@@ -1,0 +1,13 @@
+@echo off
+echo Creating .env.local file...
+
+(
+echo NEXT_PUBLIC_SUPABASE_URL=https://aaaqiutwxmohyrtmloiv.supabase.co
+echo NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhYXFpdXR3eG1vaHlydG1sb2l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMTQyNTIsImV4cCI6MjA4MDU5MDI1Mn0.WrLctG2XpW8wQnOEiSrWFQgzjeIBJBVIO178Iq6dX8E
+echo SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhYXFpdXR3eG1vaHlydG1sb2l2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTAxNDI1MiwiZXhwIjoyMDgwNTkwMjUyfQ.Z8RtLcaH-dfnXwRfIY1AVouK-RMsV50QR4VllFTOg3M
+) > .env.local
+
+echo Done! .env.local file created.
+echo.
+echo Now restart your dev server with: npm run dev
+pause

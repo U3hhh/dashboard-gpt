@@ -214,6 +214,7 @@
     font-weight: 600;
     transition: all var(--transition-base);
     box-shadow: 0 4px 20px var(--color-primary-glow);
+    cursor: pointer;
 }
 
 .actionBtn:hover {

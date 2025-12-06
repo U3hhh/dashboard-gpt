@@ -25,7 +25,7 @@ export default function UnpaidPage() {
         fetch('/api/unpaid')
             .then(res => res.json())
             .then((data) => {
-                setSubscriptions(data || []);
+                setSubscriptions(Array.isArray(data) ? data : []);
                 setLoading(false);
             })
             .catch(() => {

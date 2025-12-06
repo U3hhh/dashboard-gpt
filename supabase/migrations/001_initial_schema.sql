@@ -17,12 +17,15 @@ CREATE TABLE IF NOT EXISTS organizations (
 
 -- ============================================
 -- USERS TABLE (extends Supabase auth.users)
+-- Roles: admin, head_of_project, member
 -- ============================================
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
     email VARCHAR(255) NOT NULL,
-    role VARCHAR(50) DEFAULT 'admin',
+    name VARCHAR(255),
+    role VARCHAR(50) DEFAULT 'member', -- admin, head_of_project, member
+    is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -387,3 +390,171 @@ CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices
 
 CREATE TRIGGER update_groups_updated_at BEFORE UPDATE ON groups
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- AUTO-EXPIRE SUBSCRIPTIONS FUNCTION
+-- ============================================
+CREATE OR REPLACE FUNCTION auto_expire_subscriptions()
+RETURNS void AS $$
+BEGIN
+    UPDATE subscriptions
+    SET status = 'expired', updated_at = NOW()
+    WHERE status = 'active' 
+    AND end_date < CURRENT_DATE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================
+-- GENERATE INVOICE NUMBER FUNCTION
+-- ============================================
+CREATE OR REPLACE FUNCTION generate_invoice_number(org_id UUID)
+RETURNS VARCHAR(50) AS $$
+DECLARE
+    next_num INTEGER;
+    year_str VARCHAR(4);
+BEGIN
+    year_str := TO_CHAR(NOW(), 'YYYY');
+    
+    SELECT COALESCE(MAX(
+        CAST(SUBSTRING(invoice_number FROM 'INV-[0-9]{4}-([0-9]+)') AS INTEGER)
+    ), 0) + 1 INTO next_num
+    FROM invoices
+    WHERE organization_id = org_id
+    AND invoice_number LIKE 'INV-' || year_str || '-%';
+    
+    RETURN 'INV-' || year_str || '-' || LPAD(next_num::TEXT, 5, '0');
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================
+-- CREATE INVOICE FOR SUBSCRIPTION FUNCTION
+-- ============================================
+CREATE OR REPLACE FUNCTION create_subscription_invoice(sub_id UUID)
+RETURNS UUID AS $$
+DECLARE
+    sub_record RECORD;
+    new_invoice_id UUID;
+BEGIN
+    SELECT s.*, o.id as org_id 
+    INTO sub_record
+    FROM subscriptions s
+    JOIN organizations o ON s.organization_id = o.id
+    WHERE s.id = sub_id;
+    
+    IF sub_record IS NULL THEN
+        RETURN NULL;
+    END IF;
+    
+    INSERT INTO invoices (
+        organization_id,
+        subscription_id,
+        invoice_number,
+        amount,
+        status,
+        due_date
+    ) VALUES (
+        sub_record.organization_id,
+        sub_id,
+        generate_invoice_number(sub_record.organization_id),
+        sub_record.price,
+        'sent',
+        sub_record.start_date + INTERVAL '7 days'
+    ) RETURNING id INTO new_invoice_id;
+    
+    RETURN new_invoice_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================
+-- SEED DATA FOR TESTING
+-- ============================================
+
+-- Create a test organization
+INSERT INTO organizations (id, name, is_active) VALUES 
+    ('00000000-0000-0000-0000-000000000001', 'شركة العراق للتقنية', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Create test plans
+INSERT INTO plans (organization_id, name, description, price, period_value, period_unit) VALUES
+    ('00000000-0000-0000-0000-000000000001', 'أساسي شهري', 'الخطة الأساسية الشهرية', 25000, 1, 'month'),
+    ('00000000-0000-0000-0000-000000000001', 'متقدم شهري', 'الخطة المتقدمة الشهرية', 50000, 1, 'month'),
+    ('00000000-0000-0000-0000-000000000001', 'أساسي سنوي', 'الخطة الأساسية السنوية', 250000, 1, 'year'),
+    ('00000000-0000-0000-0000-000000000001', 'متقدم سنوي', 'الخطة المتقدمة السنوية', 500000, 1, 'year'),
+    ('00000000-0000-0000-0000-000000000001', 'أسبوعي', 'اشتراك أسبوعي', 10000, 1, 'week')
+ON CONFLICT DO NOTHING;
+
+-- Create test subscribers
+INSERT INTO subscribers (organization_id, name, email, phone, is_active) VALUES
+    ('00000000-0000-0000-0000-000000000001', 'أحمد محمد', 'ahmed@example.com', '+964 770 123 4567', true),
+    ('00000000-0000-0000-0000-000000000001', 'سارة علي', 'sara@example.com', '+964 771 234 5678', true),
+    ('00000000-0000-0000-0000-000000000001', 'محمد حسن', 'mohammed@example.com', '+964 772 345 6789', true),
+    ('00000000-0000-0000-0000-000000000001', 'فاطمة كريم', 'fatima@example.com', '+964 773 456 7890', true),
+    ('00000000-0000-0000-0000-000000000001', 'علي عباس', 'ali@example.com', '+964 774 567 8901', true),
+    ('00000000-0000-0000-0000-000000000001', 'نور الدين', 'noor@example.com', '+964 775 678 9012', true),
+    ('00000000-0000-0000-0000-000000000001', 'زينب حسين', 'zainab@example.com', '+964 776 789 0123', true),
+    ('00000000-0000-0000-0000-000000000001', 'كريم صالح', 'kareem@example.com', '+964 777 890 1234', true)
+ON CONFLICT DO NOTHING;
+
+-- Create test groups
+INSERT INTO groups (organization_id, name, description, color) VALUES
+    ('00000000-0000-0000-0000-000000000001', 'عملاء VIP', 'العملاء المميزين', '#8b5cf6'),
+    ('00000000-0000-0000-0000-000000000001', 'الشركات', 'حسابات الشركات', '#06b6d4'),
+    ('00000000-0000-0000-0000-000000000001', 'الأفراد', 'الحسابات الفردية', '#10b981')
+ON CONFLICT DO NOTHING;
+
+-- ============================================
+-- HELPER VIEW: SUBSCRIPTION SUMMARY
+-- ============================================
+CREATE OR REPLACE VIEW subscription_summary AS
+SELECT 
+    s.id,
+    s.organization_id,
+    sub.name as subscriber_name,
+    sub.email as subscriber_email,
+    sub.phone as subscriber_phone,
+    p.name as plan_name,
+    s.status,
+    s.payment_status,
+    s.price,
+    s.start_date,
+    s.end_date,
+    s.end_date - CURRENT_DATE as days_until_expiry,
+    CASE 
+        WHEN s.end_date < CURRENT_DATE THEN 'expired'
+        WHEN s.end_date <= CURRENT_DATE + 7 THEN 'expiring_soon'
+        ELSE 'ok'
+    END as expiry_status
+FROM subscriptions s
+LEFT JOIN subscribers sub ON s.subscriber_id = sub.id
+LEFT JOIN plans p ON s.plan_id = p.id;
+
+-- ============================================
+-- HELPER VIEW: MONTHLY REVENUE
+-- ============================================
+CREATE OR REPLACE VIEW monthly_revenue AS
+SELECT 
+    organization_id,
+    DATE_TRUNC('month', paid_at) as month,
+    COUNT(*) as payment_count,
+    SUM(amount) as total_revenue
+FROM payments
+GROUP BY organization_id, DATE_TRUNC('month', paid_at)
+ORDER BY month DESC;
+
+-- ============================================
+-- CRON JOB SETUP (run in Supabase dashboard > SQL Editor)
+-- Uncomment to enable auto-expiration daily at midnight
+-- ============================================
+-- SELECT cron.schedule(
+--     'auto-expire-subscriptions',
+--     '0 0 * * *',
+--     $$SELECT auto_expire_subscriptions()$$
+-- );
+
+-- ============================================
+-- GRANT PERMISSIONS (for Supabase)
+-- ============================================
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;

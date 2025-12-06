@@ -45,8 +45,8 @@ export default function SubscriptionsPage() {
         fetch(`/api/subscriptions?${params}`)
             .then(res => res.json())
             .then((data: PaginatedResponse) => {
-                setSubscriptions(data.data || []);
-                setTotalPages(data.totalPages || 1);
+                setSubscriptions(data?.data && Array.isArray(data.data) ? data.data : []);
+                setTotalPages(data?.totalPages || 1);
                 setLoading(false);
             })
             .catch(() => {

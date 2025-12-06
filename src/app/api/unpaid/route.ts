@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticate } from '@/lib/supabase/middleware';
 import { logActivity, ActivityActions } from '@/lib/utils/activity-logger';
+import { isMockMode, mockSubscriptions } from '@/lib/mock-data';
 
 // GET /api/unpaid - List unpaid subscriptions
 export async function GET() {
     try {
+        // Return mock data if Supabase is not configured
+        if (isMockMode()) {
+            const unpaid = mockSubscriptions.filter(s => s.payment_status === 'unpaid');
+            return NextResponse.json(unpaid);
+        }
+
         const authResult = await authenticate();
 
         if (!authResult.success) {

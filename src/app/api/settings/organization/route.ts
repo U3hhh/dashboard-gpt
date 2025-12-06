@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticate } from '@/lib/supabase/middleware';
 import { logActivity, ActivityActions } from '@/lib/utils/activity-logger';
+import { isMockMode, mockOrganization } from '@/lib/mock-data';
 
 // GET /api/settings/organization - Get organization settings
 export async function GET() {
     try {
+        // Return mock data if Supabase is not configured
+        if (isMockMode()) {
+            return NextResponse.json(mockOrganization);
+        }
+
         const authResult = await authenticate();
 
         if (!authResult.success) {

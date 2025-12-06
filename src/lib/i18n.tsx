@@ -28,6 +28,7 @@ const translations: Record<Language, Record<string, string>> = {
         'nav.analytics': 'Analytics',
         'nav.activity': 'Activity Logs',
         'nav.errors': 'Error Logs',
+        'nav.users': 'Users',
         'nav.settings': 'Settings',
 
         // Dashboard
@@ -87,6 +88,7 @@ const translations: Record<Language, Record<string, string>> = {
         'nav.analytics': 'التحليلات',
         'nav.activity': 'سجل النشاط',
         'nav.errors': 'سجل الأخطاء',
+        'nav.users': 'المستخدمين',
         'nav.settings': 'الإعدادات',
 
         // Dashboard

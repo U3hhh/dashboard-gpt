@@ -3,9 +3,15 @@ import { createClient } from '@/lib/supabase/server';
 import { authenticate } from '@/lib/supabase/middleware';
 import { toISODate, daysFromNow, startOfMonth, endOfMonth } from '@/lib/utils/date';
 import type { DashboardStats } from '@/lib/types/database';
+import { isMockMode, mockDashboardStats } from '@/lib/mock-data';
 
 export async function GET() {
     try {
+        // Return mock data if Supabase is not configured
+        if (isMockMode()) {
+            return NextResponse.json(mockDashboardStats);
+        }
+
         const authResult = await authenticate();
 
         if (!authResult.success) {

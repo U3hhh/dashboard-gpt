@@ -3,10 +3,16 @@ import { createClient } from '@/lib/supabase/server';
 import { authenticate } from '@/lib/supabase/middleware';
 import { logActivity, ActivityActions } from '@/lib/utils/activity-logger';
 import type { CreatePlanInput } from '@/lib/types/database';
+import { isMockMode, mockPlans } from '@/lib/mock-data';
 
 // GET /api/plans - List all plans
 export async function GET() {
     try {
+        // Return mock data if Supabase is not configured
+        if (isMockMode()) {
+            return NextResponse.json(mockPlans);
+        }
+
         const authResult = await authenticate();
 
         if (!authResult.success) {

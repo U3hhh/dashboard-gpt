@@ -102,8 +102,11 @@ export default function DashboardPage() {
             fetch('/api/activity?limit=5').then(res => res.json()),
         ])
             .then(([dashData, actData]) => {
-                setStats(dashData);
-                setActivity(actData.data || []);
+                // Handle case where API returns error object
+                if (dashData && !dashData.error) {
+                    setStats(dashData);
+                }
+                setActivity(actData?.data && Array.isArray(actData.data) ? actData.data : []);
                 setLoading(false);
             })
             .catch(() => {
@@ -215,7 +218,7 @@ export default function DashboardPage() {
             <section className={styles.quickActions}>
                 <h2 className={styles.sectionTitle}>{t('dashboard.quickActions')}</h2>
                 <div className={styles.actionButtons}>
-                    <Link href="/dashboard/subscribers?action=new" className={styles.actionBtn}>
+                    <Link href="/dashboard/subscribers/new" className={styles.actionBtn}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                             <circle cx="8.5" cy="7" r="4" />
@@ -224,7 +227,7 @@ export default function DashboardPage() {
                         </svg>
                         <span>{t('dashboard.addSubscriber')}</span>
                     </Link>
-                    <Link href="/dashboard/subscriptions?action=new" className={styles.actionBtn}>
+                    <Link href="/dashboard/subscriptions/new" className={styles.actionBtn}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                         </svg>

@@ -19,6 +19,7 @@ export type AuthResult = {
 /**
  * Authenticate the request and return user context
  * Use this in API routes to verify the user is logged in
+ * Auto-creates user profile and organization on first login
  */
 export async function authenticate(): Promise<AuthResult> {
     try {
@@ -37,20 +38,71 @@ export async function authenticate(): Promise<AuthResult> {
         }
 
         // Get user's organization info
-        const { data: userData, error: userError } = await supabase
+        let { data: userData, error: userError } = await supabase
             .from('users')
-            .select('organization_id, role')
+            .select('organization_id, role, name')
             .eq('id', user.id)
             .single();
 
+        // If user doesn't exist, auto-create profile
         if (userError || !userData) {
-            return {
-                success: false,
-                error: NextResponse.json(
-                    { error: 'User not found', message: 'User profile not found' },
-                    { status: 404 }
-                ),
-            };
+            // Check if organization exists, if not create one
+            let { data: org } = await supabase
+                .from('organizations')
+                .select('id')
+                .limit(1)
+                .single();
+
+            if (!org) {
+                // Create default organization
+                const { data: newOrg, error: orgError } = await supabase
+                    .from('organizations')
+                    .insert({
+                        name: 'My Organization',
+                        is_active: true,
+                    })
+                    .select('id')
+                    .single();
+
+                if (orgError) {
+                    console.error('Failed to create organization:', orgError);
+                    return {
+                        success: false,
+                        error: NextResponse.json(
+                            { error: 'Setup failed', message: 'Failed to create organization' },
+                            { status: 500 }
+                        ),
+                    };
+                }
+                org = newOrg;
+            }
+
+            // Create user profile with head_of_project role (first user gets this role)
+            const { data: newUser, error: createError } = await supabase
+                .from('users')
+                .insert({
+                    id: user.id,
+                    email: user.email,
+                    name: user.email?.split('@')[0] || 'User',
+                    organization_id: org.id,
+                    role: 'head_of_project', // First user gets head_of_project
+                    is_active: true,
+                })
+                .select('organization_id, role, name')
+                .single();
+
+            if (createError) {
+                console.error('Failed to create user profile:', createError);
+                return {
+                    success: false,
+                    error: NextResponse.json(
+                        { error: 'Setup failed', message: 'Failed to create user profile: ' + createError.message },
+                        { status: 500 }
+                    ),
+                };
+            }
+
+            userData = newUser;
         }
 
         if (!userData.organization_id) {
@@ -99,6 +151,29 @@ export async function requireAdmin(): Promise<AuthResult> {
             success: false,
             error: NextResponse.json(
                 { error: 'Forbidden', message: 'Admin access required' },
+                { status: 403 }
+            ),
+        };
+    }
+
+    return authResult;
+}
+
+/**
+ * Require admin or head_of_project role
+ */
+export async function requireManager(): Promise<AuthResult> {
+    const authResult = await authenticate();
+
+    if (!authResult.success) {
+        return authResult;
+    }
+
+    if (!['admin', 'head_of_project'].includes(authResult.context.role)) {
+        return {
+            success: false,
+            error: NextResponse.json(
+                { error: 'Forbidden', message: 'Manager access required' },
                 { status: 403 }
             ),
         };
