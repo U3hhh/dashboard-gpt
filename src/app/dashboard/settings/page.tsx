@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n';
+import { useSettings } from '@/lib/settings-context';
 import styles from './page.module.css';
 
 interface Organization {
@@ -13,6 +14,7 @@ interface Organization {
 
 export default function SettingsPage() {
     const { t, language, setLanguage } = useLanguage();
+    const { dateInputType, setDateInputType } = useSettings();
     const [org, setOrg] = useState<Organization | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -127,6 +129,32 @@ export default function SettingsPage() {
                         <span className={styles.langFlag}>🇮🇶</span>
                         <span>العربية</span>
                     </button>
+                </div>
+            </section>
+
+            {/* Preferences */}
+            <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>
+                    {language === 'ar' ? 'تفضيلات العرض' : 'Display Preferences'}
+                </h2>
+                <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                        {language === 'ar' ? 'طريقة إدخال التاريخ' : 'Date Input Method'}
+                    </label>
+                    <div className={styles.languageOptions}>
+                        <button
+                            className={`${styles.langBtn} ${dateInputType === 'text' ? styles.active : ''}`}
+                            onClick={() => setDateInputType('text')}
+                        >
+                            <span>{language === 'ar' ? 'كتابة (YYYY/MM/DD)' : 'Type (YYYY/MM/DD)'}</span>
+                        </button>
+                        <button
+                            className={`${styles.langBtn} ${dateInputType === 'date' ? styles.active : ''}`}
+                            onClick={() => setDateInputType('date')}
+                        >
+                            <span>{language === 'ar' ? 'اختيار من التقويم' : 'Date Picker'}</span>
+                        </button>
+                    </div>
                 </div>
             </section>
 

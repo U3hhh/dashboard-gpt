@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n';
+import { useSettings } from '@/lib/settings-context';
 import styles from './page.module.css';
 
 interface Plan {
@@ -18,6 +19,7 @@ function NewSubscriptionContent() {
     const searchParams = useSearchParams();
     const subscriberId = searchParams.get('subscriberId');
     const { language } = useLanguage();
+    const { dateInputType } = useSettings();
 
     const [plans, setPlans] = useState<Plan[]>([]);
     const [loading, setLoading] = useState(true);
@@ -314,21 +316,31 @@ function NewSubscriptionContent() {
                 <div className={styles.row}>
                     <div className={styles.field}>
                         <label className={styles.label}>{t.startDate} *</label>
-                        <input
-                            type="text"
-                            onFocus={(e) => {
-                                e.target.type = 'date';
-                                e.target.value = formData.start_date;
-                            }}
-                            onBlur={(e) => {
-                                e.target.type = 'text';
-                                e.target.value = formData.start_date.replace(/-/g, '/');
-                            }}
-                            value={formData.start_date.replace(/-/g, '/')}
-                            onChange={(e) => handleStartDateChange(e.target.value)}
-                            className={styles.input}
-                            required
-                        />
+                        {dateInputType === 'date' ? (
+                            <input
+                                type="date"
+                                value={formData.start_date.replace(/\//g, '-')}
+                                onChange={(e) => handleStartDateChange(e.target.value)}
+                                className={styles.input}
+                                required
+                            />
+                        ) : (
+                            <input
+                                type="text"
+                                onFocus={(e) => {
+                                    e.target.type = 'date';
+                                    e.target.value = formData.start_date;
+                                }}
+                                onBlur={(e) => {
+                                    e.target.type = 'text';
+                                    e.target.value = formData.start_date.replace(/-/g, '/');
+                                }}
+                                value={formData.start_date.replace(/-/g, '/')}
+                                onChange={(e) => handleStartDateChange(e.target.value)}
+                                className={styles.input}
+                                required
+                            />
+                        )}
                     </div>
                     <div className={styles.field}>
                         <label className={styles.label}>
@@ -346,6 +358,14 @@ function NewSubscriptionContent() {
                                 className={styles.input}
                                 readOnly
                                 style={{ opacity: 0.7 }}
+                            />
+                        ) : dateInputType === 'date' ? (
+                            <input
+                                type="date"
+                                value={formData.end_date.replace(/\//g, '-')}
+                                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                                className={styles.input}
+                                required
                             />
                         ) : (
                             <input
