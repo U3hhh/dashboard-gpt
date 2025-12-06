@@ -17,16 +17,26 @@ export default function DashboardLayout({
 
     useEffect(() => {
         // Fetch organization info
-        fetch('/api/settings/organization')
-            .then(res => res.json())
-            .then(data => {
-                if (data.name) {
-                    setOrganizationName(data.name);
+        const fetchOrg = async () => {
+            try {
+                const res = await fetch('/api/settings/organization');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.name) {
+                        setOrganizationName(data.name);
+                    } else {
+                        setOrganizationName('My Organization');
+                    }
+                } else {
+                    setOrganizationName('My Organization');
                 }
-            })
-            .catch(() => {
+            } catch (error) {
+                console.error('Failed to fetch organization:', error);
                 setOrganizationName('My Organization');
-            });
+            }
+        };
+
+        fetchOrg();
     }, []);
 
     const toggleSidebar = () => {

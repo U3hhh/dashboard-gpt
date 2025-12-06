@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n';
-import styles from './page.module.css';
+import styles from '../new/page.module.css'; // Reuse styles
 
 interface Plan {
     id: string;
@@ -13,10 +13,10 @@ interface Plan {
     period_unit: string;
 }
 
-function NewSubscriptionContent() {
+function EditSubscriptionContent() {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const subscriberId = searchParams.get('subscriberId');
+    const params = useParams();
+    const id = params.id as string;
     const { language } = useLanguage();
 
     const [plans, setPlans] = useState<Plan[]>([]);
@@ -29,7 +29,7 @@ function NewSubscriptionContent() {
         phone: '',
         plan_id: '',
         price: '',
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: '',
         end_date: '',
         status: 'active',
         payment_status: 'unpaid',
@@ -72,48 +72,24 @@ function NewSubscriptionContent() {
                 const loadedPlans = Array.isArray(plansData) ? plansData : [];
                 setPlans(loadedPlans);
 
-                // 2. If subscriberId exists, fetch subscriber details for autofill
-                if (subscriberId) {
-                    const subRes = await fetch(`/api/subscribers/${subscriberId}`);
+                // 2. Fetch Subscription Details
+                if (id) {
+                    const subRes = await fetch(`/api/subscriptions/${id}`);
                     if (subRes.ok) {
                         const subData = await subRes.json();
 
-                        // Find latest subscription if exists
-                        const latestSub = subData.subscriptions && subData.subscriptions.length > 0
-                            ? subData.subscriptions[0]
-                            : null;
-
-                        console.log('Latest Subscription:', latestSub);
-                        console.log('Loaded Plans:', loadedPlans);
-
-                        let newFormData = {
-                            ...formData,
-                            subscriber_name: subData.name || '',
-                            phone: subData.phone || '',
-                        };
-
-                        // Autofill plan details if available
-                        if (latestSub && latestSub.plan_id) {
-                            const planId = latestSub.plan_id;
-                            const plan = loadedPlans.find((p: Plan) => p.id === planId);
-
-                            console.log('Plan ID from Sub:', planId);
-                            console.log('Found Plan:', plan);
-
-                            if (plan) {
-                                // Calculate new end date based on TODAY's start date
-                                const endDate = calculateEndDate(formData.start_date, planId, loadedPlans);
-
-                                newFormData = {
-                                    ...newFormData,
-                                    plan_id: planId,
-                                    price: plan.price.toString(),
-                                    end_date: endDate,
-                                };
-                            }
-                        }
-
-                        setFormData(newFormData);
+                        setFormData({
+                            subscriber_name: subData.subscriber?.name || '',
+                            phone: subData.subscriber?.phone || '',
+                            plan_id: subData.plan_id || '',
+                            price: subData.price?.toString() || '',
+                            start_date: subData.start_date ? subData.start_date.split('T')[0] : '',
+                            end_date: subData.end_date ? subData.end_date.split('T')[0] : '',
+                            status: subData.status || 'active',
+                            payment_status: subData.payment_status || 'unpaid',
+                        });
+                    } else {
+                        setError('Subscription not found');
                     }
                 }
                 setLoading(false);
@@ -125,7 +101,7 @@ function NewSubscriptionContent() {
         };
 
         loadData();
-    }, [subscriberId]); // Depend on subscriberId to re-run if URL changes
+    }, [id]);
 
     const handlePlanChange = (planId: string) => {
         const plan = plans.find(p => p.id === planId);
@@ -160,36 +136,10 @@ function NewSubscriptionContent() {
         setError(null);
 
         try {
-            let subscriber_id = subscriberId;
-
-            // If no subscriberId in URL, create new subscriber first
-            if (!subscriber_id) {
-                const subscriberRes = await fetch('/api/subscribers', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: formData.subscriber_name,
-                        phone: formData.phone || null,
-                    }),
-                });
-
-                if (!subscriberRes.ok) {
-                    const subErr = await subscriberRes.json();
-                    setError(subErr.message || 'Failed to create subscriber');
-                    setSaving(false);
-                    return;
-                }
-
-                const subscriber = await subscriberRes.json();
-                subscriber_id = subscriber.id;
-            }
-
-            // Create the subscription
-            const subscriptionRes = await fetch('/api/subscriptions', {
-                method: 'POST',
+            const res = await fetch(`/api/subscriptions/${id}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    subscriber_id: subscriber_id,
                     plan_id: formData.plan_id || null,
                     price: parseFloat(formData.price),
                     start_date: formData.start_date,
@@ -199,11 +149,11 @@ function NewSubscriptionContent() {
                 }),
             });
 
-            if (subscriptionRes.ok) {
+            if (res.ok) {
                 router.push('/dashboard/subscriptions');
             } else {
-                const data = await subscriptionRes.json();
-                setError(data.message || 'Failed to create subscription');
+                const data = await res.json();
+                setError(data.message || 'Failed to update subscription');
             }
         } catch {
             setError('An error occurred');
@@ -212,10 +162,9 @@ function NewSubscriptionContent() {
     };
 
     const t = {
-        title: language === 'ar' ? 'اشتراك جديد' : 'New Subscription',
+        title: language === 'ar' ? 'تعديل الاشتراك' : 'Edit Subscription',
         subscriberName: language === 'ar' ? 'اسم المشترك' : 'Subscriber Name',
-        enterName: language === 'ar' ? 'أدخل اسم المشترك' : 'Enter subscriber name',
-        phone: language === 'ar' ? 'رقم الهاتف (اختياري)' : 'Phone Number (optional)',
+        phone: language === 'ar' ? 'رقم الهاتف' : 'Phone Number',
         plan: language === 'ar' ? 'الخطة' : 'Plan',
         selectPlan: language === 'ar' ? 'اختر خطة (اختياري)' : 'Select plan (optional)',
         price: language === 'ar' ? 'السعر (IQD)' : 'Price (IQD)',
@@ -227,7 +176,7 @@ function NewSubscriptionContent() {
         pending: language === 'ar' ? 'معلق' : 'Pending',
         paid: language === 'ar' ? 'مدفوع' : 'Paid',
         unpaid: language === 'ar' ? 'غير مدفوع' : 'Unpaid',
-        save: language === 'ar' ? 'إنشاء اشتراك' : 'Create Subscription',
+        save: language === 'ar' ? 'حفظ التغييرات' : 'Save Changes',
         saving: language === 'ar' ? 'جاري الحفظ...' : 'Saving...',
         cancel: language === 'ar' ? 'إلغاء' : 'Cancel',
         autoCalculated: language === 'ar' ? '(يحسب تلقائياً من الخطة)' : '(Auto-calculated from plan)',
@@ -250,32 +199,29 @@ function NewSubscriptionContent() {
             )}
 
             <form onSubmit={handleSubmit} className={styles.form}>
-                {/* Subscriber Name */}
+                {/* Subscriber Name (Read Only) */}
                 <div className={styles.field}>
-                    <label className={styles.label}>{t.subscriberName} *</label>
+                    <label className={styles.label}>{t.subscriberName}</label>
                     <input
                         type="text"
                         value={formData.subscriber_name}
-                        onChange={(e) => setFormData({ ...formData, subscriber_name: e.target.value })}
                         className={styles.input}
-                        placeholder={t.enterName}
-                        required
-                        readOnly={!!subscriberId} // Read-only if renewing
-                        style={{ opacity: subscriberId ? 0.7 : 1 }}
+                        readOnly
+                        disabled
+                        style={{ opacity: 0.7, cursor: 'not-allowed' }}
                     />
                 </div>
 
-                {/* Phone (optional) */}
+                {/* Phone (Read Only) */}
                 <div className={styles.field}>
                     <label className={styles.label}>{t.phone}</label>
                     <input
                         type="tel"
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         className={styles.input}
-                        placeholder="+964 7xx xxx xxxx"
-                        readOnly={!!subscriberId} // Read-only if renewing
-                        style={{ opacity: subscriberId ? 0.7 : 1 }}
+                        readOnly
+                        disabled
+                        style={{ opacity: 0.7, cursor: 'not-allowed' }}
                     />
                 </div>
 
@@ -415,10 +361,10 @@ function NewSubscriptionContent() {
     );
 }
 
-export default function NewSubscriptionPage() {
+export default function EditSubscriptionPage() {
     return (
         <Suspense fallback={<div>Loading...</div>}>
-            <NewSubscriptionContent />
+            <EditSubscriptionContent />
         </Suspense>
     );
 }

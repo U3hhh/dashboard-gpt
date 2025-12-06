@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { authenticate } from '@/lib/supabase/middleware';
+import { authenticate, isDemoMode } from '@/lib/supabase/middleware';
 import { getPaginationParams, createPaginatedResponse, getSupabaseRange } from '@/lib/utils/pagination';
 import { logActivity, ActivityActions } from '@/lib/utils/activity-logger';
 import type { CreateSubscriptionInput } from '@/lib/types/database';
-import { isMockMode, mockSubscriptions } from '@/lib/mock-data';
+import { mockSubscriptions } from '@/lib/mock-data';
 
 // GET /api/subscriptions - List subscriptions with pagination and filtering
 export async function GET(request: NextRequest) {
@@ -14,11 +14,8 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '10');
 
-        // Try to authenticate first
-        const authResult = await authenticate();
-
-        // If not authenticated, return mock data (demo mode)
-        if (!authResult.success) {
+        // Check if demo mode is enabled via cookie
+        if (await isDemoMode()) {
             let filtered = [...mockSubscriptions];
             if (status) {
                 filtered = filtered.filter(s => s.status === status);
@@ -32,6 +29,12 @@ export async function GET(request: NextRequest) {
                 limit,
                 totalPages: Math.ceil(filtered.length / limit),
             });
+        }
+
+        // Authenticate - return error if not logged in
+        const authResult = await authenticate();
+        if (!authResult.success) {
+            return authResult.error;
         }
 
 

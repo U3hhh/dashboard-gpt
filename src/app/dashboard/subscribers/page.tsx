@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n';
 import styles from '../subscriptions/page.module.css';
 
@@ -10,6 +11,8 @@ interface Subscriber {
     name: string;
     email: string | null;
     phone: string | null;
+    address: string | null;
+    notes: string | null;
     is_active: boolean;
     created_at: string;
     subscription_count?: number;
@@ -25,13 +28,26 @@ interface PaginatedResponse {
 
 export default function SubscribersPage() {
     const { t, language } = useLanguage();
+    const router = useRouter();
     const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [search, setSearch] = useState('');
 
-    useEffect(() => {
+    // Edit Modal State
+    const [showModal, setShowModal] = useState(false);
+    const [editingSubscriber, setEditingSubscriber] = useState<Subscriber | null>(null);
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        notes: '',
+    });
+    const [saving, setSaving] = useState(false);
+
+    const fetchSubscribers = () => {
         setLoading(true);
         const params = new URLSearchParams({
             page: page.toString(),
@@ -51,11 +67,88 @@ export default function SubscribersPage() {
             .catch(() => {
                 setLoading(false);
             });
+    };
+
+    useEffect(() => {
+        fetchSubscribers();
     }, [page, search]);
 
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setPage(1);
+    };
+
+    const handleEdit = (subscriber: Subscriber) => {
+        setEditingSubscriber(subscriber);
+        setFormData({
+            name: subscriber.name,
+            email: subscriber.email || '',
+            phone: subscriber.phone || '',
+            address: subscriber.address || '',
+            notes: subscriber.notes || '',
+        });
+        setShowModal(true);
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا المشترك؟' : 'Are you sure you want to delete this subscriber?')) return;
+
+        try {
+            const res = await fetch(`/api/subscribers/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (res.ok) {
+                fetchSubscribers();
+            } else {
+                alert('Failed to delete subscriber');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+        }
+    };
+
+    const handleRenew = (id: string) => {
+        router.push(`/dashboard/subscriptions/new?subscriberId=${id}`);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingSubscriber) return;
+        setSaving(true);
+
+        try {
+            const res = await fetch(`/api/subscribers/${editingSubscriber.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
+
+            if (res.ok) {
+                fetchSubscribers();
+                setShowModal(false);
+            } else {
+                alert('Failed to update subscriber');
+            }
+        } catch (error) {
+            console.error('Update error:', error);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const tr = {
+        edit: language === 'ar' ? 'تعديل' : 'Edit',
+        delete: language === 'ar' ? 'حذف' : 'Delete',
+        renew: language === 'ar' ? 'تجديد' : 'Renew',
+        editSubscriber: language === 'ar' ? 'تعديل المشترك' : 'Edit Subscriber',
+        name: language === 'ar' ? 'الاسم' : 'Name',
+        email: language === 'ar' ? 'البريد الإلكتروني' : 'Email',
+        phone: language === 'ar' ? 'الهاتف' : 'Phone',
+        address: language === 'ar' ? 'العنوان' : 'Address',
+        notes: language === 'ar' ? 'ملاحظات' : 'Notes',
+        save: language === 'ar' ? 'حفظ' : 'Save',
+        cancel: language === 'ar' ? 'إلغاء' : 'Cancel',
     };
 
     return (
@@ -85,7 +178,7 @@ export default function SubscribersPage() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="input"
-                    style={{ maxWidth: '300px' }}
+                    style={{ maxWidth: '300px', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)' }}
                 />
             </form>
 
@@ -113,7 +206,7 @@ export default function SubscribersPage() {
                                 <th>{language === 'ar' ? 'الهاتف' : 'Phone'}</th>
                                 <th>{language === 'ar' ? 'الاشتراكات' : 'Subscriptions'}</th>
                                 <th>{language === 'ar' ? 'الحالة' : 'Status'}</th>
-                                <th></th>
+                                <th>{language === 'ar' ? 'الإجراءات' : 'Actions'}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -131,9 +224,9 @@ export default function SubscribersPage() {
                                         </span>
                                     </td>
                                     <td>
-                                        <Link href={`/dashboard/subscribers/${sub.id}`} className={styles.viewBtn}>
-                                            {t('common.view')}
-                                        </Link>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            {/* Actions removed as per request */}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -162,6 +255,67 @@ export default function SubscribersPage() {
                     >
                         →
                     </button>
+                </div>
+            )}
+
+            {/* Edit Modal */}
+            {showModal && (
+                <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
+                    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                        <h2 className={styles.modalTitle}>{tr.editSubscriber}</h2>
+                        <form onSubmit={handleSubmit} className={styles.modalForm}>
+                            <div className={styles.modalField}>
+                                <label>{tr.name} *</label>
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className={styles.modalField}>
+                                <label>{tr.email}</label>
+                                <input
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                />
+                            </div>
+                            <div className={styles.modalField}>
+                                <label>{tr.phone}</label>
+                                <input
+                                    type="text"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                />
+                            </div>
+                            <div className={styles.modalField}>
+                                <label>{tr.address}</label>
+                                <input
+                                    type="text"
+                                    value={formData.address}
+                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                />
+                            </div>
+                            <div className={styles.modalField}>
+                                <label>{tr.notes}</label>
+                                <textarea
+                                    value={formData.notes}
+                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                    rows={3}
+                                    style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', width: '100%' }}
+                                />
+                            </div>
+                            <div className={styles.modalActions}>
+                                <button type="button" onClick={() => setShowModal(false)} className={styles.cancelBtn}>
+                                    {tr.cancel}
+                                </button>
+                                <button type="submit" className={styles.saveBtn} disabled={saving}>
+                                    {saving ? '...' : tr.save}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>

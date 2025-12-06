@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { createClient } from './server';
 
 export interface AuthContext {
@@ -14,6 +15,20 @@ export type AuthResult = {
 } | {
     success: false;
     error: NextResponse;
+    isDemo?: boolean; // Flag if this is demo mode
+}
+
+/**
+ * Check if the request is in demo mode (via cookie)
+ */
+export async function isDemoMode(): Promise<boolean> {
+    try {
+        const cookieStore = await cookies();
+        const demoCookie = cookieStore.get('demo_mode');
+        return demoCookie?.value === 'true';
+    } catch {
+        return false;
+    }
 }
 
 /**
@@ -46,46 +61,39 @@ export async function authenticate(): Promise<AuthResult> {
 
         // If user doesn't exist, auto-create profile
         if (userError || !userData) {
-            // Check if organization exists, if not create one
-            let { data: org } = await supabase
+            // Create a new organization for this user
+            // We use the user's name or email to name the organization
+            const orgName = (user.email?.split('@')[0] || 'My') + "'s Organization";
+
+            const { data: newOrg, error: orgError } = await supabase
                 .from('organizations')
+                .insert({
+                    name: orgName,
+                    is_active: true,
+                })
                 .select('id')
-                .limit(1)
                 .single();
 
-            if (!org) {
-                // Create default organization
-                const { data: newOrg, error: orgError } = await supabase
-                    .from('organizations')
-                    .insert({
-                        name: 'My Organization',
-                        is_active: true,
-                    })
-                    .select('id')
-                    .single();
-
-                if (orgError) {
-                    console.error('Failed to create organization:', orgError);
-                    return {
-                        success: false,
-                        error: NextResponse.json(
-                            { error: 'Setup failed', message: 'Failed to create organization' },
-                            { status: 500 }
-                        ),
-                    };
-                }
-                org = newOrg;
+            if (orgError) {
+                console.error('Failed to create organization:', orgError);
+                return {
+                    success: false,
+                    error: NextResponse.json(
+                        { error: 'Setup failed', message: 'Failed to create organization' },
+                        { status: 500 }
+                    ),
+                };
             }
 
-            // Create user profile with head_of_project role (first user gets this role)
+            // Create user profile with head_of_project role
             const { data: newUser, error: createError } = await supabase
                 .from('users')
                 .insert({
                     id: user.id,
                     email: user.email,
                     name: user.email?.split('@')[0] || 'User',
-                    organization_id: org.id,
-                    role: 'head_of_project', // First user gets head_of_project
+                    organization_id: newOrg.id,
+                    role: 'head_of_project',
                     is_active: true,
                 })
                 .select('organization_id, role, name')

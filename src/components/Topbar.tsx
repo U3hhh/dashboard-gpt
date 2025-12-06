@@ -15,6 +15,7 @@ export default function Topbar({ onMenuToggle, userEmail = 'user@example.com' }:
     const router = useRouter();
     const [isDemo, setIsDemo] = useState(false);
     const [displayEmail, setDisplayEmail] = useState(userEmail);
+    const [displayRole, setDisplayRole] = useState('Admin');
 
     useEffect(() => {
         // Check if in demo mode
@@ -25,7 +26,26 @@ export default function Topbar({ onMenuToggle, userEmail = 'user@example.com' }:
             if (demoUser) {
                 const user = JSON.parse(demoUser);
                 setDisplayEmail(user.email);
+                setDisplayRole(user.role || 'Admin');
             }
+        } else {
+            // Fetch real user info
+            fetch('/api/settings/profile')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.email) {
+                        setDisplayEmail(data.email);
+                    }
+                    if (data.role) {
+                        // Format role: head_of_project -> Head Of Project
+                        const formattedRole = data.role
+                            .split('_')
+                            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ');
+                        setDisplayRole(formattedRole);
+                    }
+                })
+                .catch(err => console.error('Failed to fetch profile:', err));
         }
     }, []);
 
@@ -96,7 +116,7 @@ export default function Topbar({ onMenuToggle, userEmail = 'user@example.com' }:
                     </div>
                     <div className={styles.userInfo}>
                         <span className={styles.userEmail}>{displayEmail}</span>
-                        <span className={styles.userRole}>{isDemo ? (language === 'ar' ? 'تجريبي' : 'Demo') : 'Admin'}</span>
+                        <span className={styles.userRole}>{isDemo ? (language === 'ar' ? 'تجريبي' : 'Demo') : displayRole}</span>
                     </div>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

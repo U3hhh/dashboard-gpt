@@ -27,25 +27,23 @@ export default function LoginPage() {
 
             const data = await res.json();
 
-            if (res.ok) {
+            if (data.status === 'success') {
+                // Clear demo mode cookie if it exists
+                document.cookie = 'demo_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
                 // Store auth mode
                 localStorage.setItem('authMode', 'real');
+                localStorage.removeItem('demoUser');
+
+                // Show success message if needed, or just redirect
                 router.push('/dashboard');
             } else {
-                // Show detailed error message
-                const errorMsg = data.message || 'Login failed';
-                const errorCode = data.code ? ` (${data.code})` : '';
-                setError(language === 'ar'
-                    ? getArabicError(data.code, errorMsg)
-                    : `${errorMsg}${errorCode}`
-                );
+                // Show detailed error message from API
+                setError(data.message || 'Login failed');
             }
         } catch (err) {
             console.error('Login fetch error:', err);
-            setError(language === 'ar'
-                ? 'خطأ في الاتصال. يرجى التحقق من اتصالك بالإنترنت.'
-                : 'Connection error. Please check your internet connection.'
-            );
+            setError('Network connection failed. Please check your internet connection and try again.');
         }
         setLoading(false);
     };
@@ -72,13 +70,16 @@ export default function LoginPage() {
         setError(null);
 
         try {
-            // Set demo mode in localStorage
+            // Set demo mode in localStorage AND cookie (so server can check)
             localStorage.setItem('authMode', 'demo');
             localStorage.setItem('demoUser', JSON.stringify({
                 email: 'demo@example.com',
                 name: 'Demo User',
                 role: 'admin',
             }));
+
+            // Set cookie for server-side demo mode detection
+            document.cookie = 'demo_mode=true; path=/; max-age=86400';
 
             // Redirect to dashboard
             router.push('/dashboard');

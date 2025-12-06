@@ -1,0 +1,9 @@
+@echo off
+echo Adding all changes...
+git add .
+echo Committing changes...
+git commit -m "Force push update %date% %time%"
+echo Force pushing to origin main...
+git push origin main --force
+echo Done!
+pause

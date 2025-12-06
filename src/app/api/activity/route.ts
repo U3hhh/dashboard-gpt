@@ -1,59 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { authenticate } from '@/lib/supabase/middleware';
-import { getPaginationParams, createPaginatedResponse, getSupabaseRange } from '@/lib/utils/pagination';
-import { isMockMode, mockActivity } from '@/lib/mock-data';
 
-// GET /api/activity - List activity logs with filtering
+// GET /api/activity - List activity logs
 export async function GET(request: NextRequest) {
     try {
-        const { searchParams } = new URL(request.url);
-        const limit = parseInt(searchParams.get('limit') || '10');
-
-        // Try to authenticate first
         const authResult = await authenticate();
-
-        // If not authenticated, return mock data (demo mode)
-        if (!authResult.success) {
-            return NextResponse.json({
-                data: mockActivity.slice(0, limit),
-                total: mockActivity.length,
-                page: 1,
-                limit,
-                totalPages: 1,
-            });
-        }
+        if (!authResult.success) return authResult.error;
 
         const supabase = await createClient();
-        const paginationParams = getPaginationParams(searchParams);
-        const { from, to } = getSupabaseRange(paginationParams);
+        const searchParams = request.nextUrl.searchParams;
+        const limit = parseInt(searchParams.get('limit') || '50');
 
-        // Filter options
-        const entityType = searchParams.get('entity_type');
-        const entityId = searchParams.get('entity_id');
-        const userId = searchParams.get('user_id');
-
-        // Build query
-        let query = supabase
+        const { data, error } = await supabase
             .from('activity_logs')
             .select(`
-        *,
-        user:users(id, email)
-      `, { count: 'exact' })
+                *,
+                users (name, email)
+            `)
             .eq('organization_id', authResult.context.organizationId)
-            .order('created_at', { ascending: false });
-
-        if (entityType) {
-            query = query.eq('entity_type', entityType);
-        }
-        if (entityId) {
-            query = query.eq('entity_id', entityId);
-        }
-        if (userId) {
-            query = query.eq('user_id', userId);
-        }
-
-        const { data, count, error } = await query.range(from, to);
+            .order('created_at', { ascending: false })
+            .limit(limit);
 
         if (error) {
             return NextResponse.json(
@@ -62,9 +29,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        return NextResponse.json(
-            createPaginatedResponse(data || [], count || 0, paginationParams.page, paginationParams.limit)
-        );
+        return NextResponse.json(data);
     } catch (error) {
         console.error('Activity logs error:', error);
         return NextResponse.json(

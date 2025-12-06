@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { authenticate } from '@/lib/supabase/middleware';
+import { authenticate, isDemoMode } from '@/lib/supabase/middleware';
 import { logActivity, ActivityActions } from '@/lib/utils/activity-logger';
-import { isMockMode, mockSubscriptions } from '@/lib/mock-data';
+import { mockSubscriptions } from '@/lib/mock-data';
 
 // GET /api/unpaid - List unpaid subscriptions
 export async function GET() {
     try {
-        // Try to authenticate first
-        const authResult = await authenticate();
-
-        // If not authenticated, return mock data (demo mode)
-        if (!authResult.success) {
+        // Check if demo mode is enabled via cookie
+        if (await isDemoMode()) {
             const unpaid = mockSubscriptions.filter(s => s.payment_status === 'unpaid');
             return NextResponse.json(unpaid);
+        }
+
+        // Authenticate - return error if not logged in
+        const authResult = await authenticate();
+        if (!authResult.success) {
+            return authResult.error;
         }
 
         const supabase = await createClient();

@@ -1,18 +1,25 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { authenticate } from '@/lib/supabase/middleware';
+import { authenticate, isDemoMode } from '@/lib/supabase/middleware';
 import { toISODate, daysFromNow, startOfMonth, endOfMonth } from '@/lib/utils/date';
 import type { DashboardStats } from '@/lib/types/database';
 import { mockDashboardStats } from '@/lib/mock-data';
 
 export async function GET() {
     try {
-        // Try to authenticate first
+        // Check if demo mode is explicitly enabled via cookie
+        if (await isDemoMode()) {
+            return NextResponse.json({
+                ...mockDashboardStats,
+                dataSource: 'mock'
+            });
+        }
+
+        // Try to authenticate - if not logged in, return error (not mock data)
         const authResult = await authenticate();
 
-        // If authentication fails, return mock data (demo mode)
         if (!authResult.success) {
-            return NextResponse.json(mockDashboardStats);
+            return authResult.error;
         }
 
         const supabase = await createClient();
@@ -78,7 +85,10 @@ export async function GET() {
             expiringSubscriptions: expiringSubscriptions || [],
         };
 
-        return NextResponse.json(stats);
+        return NextResponse.json({
+            ...stats,
+            dataSource: 'real'
+        });
     } catch (error) {
         console.error('Dashboard error:', error);
         return NextResponse.json(
