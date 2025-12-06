@@ -10,8 +10,11 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const limit = parseInt(searchParams.get('limit') || '10');
 
-        // Return mock data if Supabase is not configured
-        if (isMockMode()) {
+        // Try to authenticate first
+        const authResult = await authenticate();
+
+        // If not authenticated, return mock data (demo mode)
+        if (!authResult.success) {
             return NextResponse.json({
                 data: mockActivity.slice(0, limit),
                 total: mockActivity.length,
@@ -19,12 +22,6 @@ export async function GET(request: NextRequest) {
                 limit,
                 totalPages: 1,
             });
-        }
-
-        const authResult = await authenticate();
-
-        if (!authResult.success) {
-            return authResult.error;
         }
 
         const supabase = await createClient();

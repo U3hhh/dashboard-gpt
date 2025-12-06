@@ -72,9 +72,33 @@ export const mockDashboardStats = {
 
 // Check if we should use mock data
 export const isMockMode = () => {
-    // Force demo mode with environment variable
+    // Check if running on client side
+    if (typeof window !== 'undefined') {
+        // If user logged in with real credentials, don't use mock mode
+        const authMode = localStorage.getItem('authMode');
+        if (authMode === 'real') {
+            return false;
+        }
+        // If user chose demo mode explicitly
+        if (authMode === 'demo') {
+            return true;
+        }
+    }
+
+    // Force demo mode with environment variable (only if no authMode set)
+    if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+        return true;
+    }
+
+    // No Supabase configured = mock mode
+    return !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL === 'your_project_url';
+};
+
+// Server-side mock mode check (doesn't have access to localStorage)
+export const isServerMockMode = () => {
     if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
         return true;
     }
     return !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL === 'your_project_url';
 };
+

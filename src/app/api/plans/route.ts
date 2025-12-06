@@ -8,15 +8,12 @@ import { isMockMode, mockPlans } from '@/lib/mock-data';
 // GET /api/plans - List all plans
 export async function GET() {
     try {
-        // Return mock data if Supabase is not configured
-        if (isMockMode()) {
-            return NextResponse.json(mockPlans);
-        }
-
+        // Try to authenticate first
         const authResult = await authenticate();
 
+        // If not authenticated, return mock data (demo mode)
         if (!authResult.success) {
-            return authResult.error;
+            return NextResponse.json(mockPlans);
         }
 
         const supabase = await createClient();

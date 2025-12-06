@@ -32,13 +32,40 @@ export default function LoginPage() {
                 localStorage.setItem('authMode', 'real');
                 router.push('/dashboard');
             } else {
-                setError(data.message || 'Login failed');
+                // Show detailed error message
+                const errorMsg = data.message || 'Login failed';
+                const errorCode = data.code ? ` (${data.code})` : '';
+                setError(language === 'ar'
+                    ? getArabicError(data.code, errorMsg)
+                    : `${errorMsg}${errorCode}`
+                );
             }
-        } catch {
-            setError('An error occurred. Please try again.');
+        } catch (err) {
+            console.error('Login fetch error:', err);
+            setError(language === 'ar'
+                ? 'خطأ في الاتصال. يرجى التحقق من اتصالك بالإنترنت.'
+                : 'Connection error. Please check your internet connection.'
+            );
         }
         setLoading(false);
     };
+
+    // Arabic error messages mapping
+    const getArabicError = (code: string, fallback: string): string => {
+        const arabicErrors: Record<string, string> = {
+            'MISSING_CREDENTIALS': 'البريد الإلكتروني وكلمة المرور مطلوبان',
+            'INVALID_EMAIL': 'صيغة البريد الإلكتروني غير صحيحة',
+            'INVALID_CREDENTIALS': 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+            'EMAIL_NOT_VERIFIED': 'يرجى التحقق من بريدك الإلكتروني قبل تسجيل الدخول',
+            'RATE_LIMITED': 'محاولات كثيرة. يرجى الانتظار والمحاولة مرة أخرى',
+            'USER_NOT_FOUND': 'لا يوجد حساب بهذا البريد الإلكتروني',
+            'NETWORK_ERROR': 'خطأ في الشبكة. يرجى التحقق من اتصالك',
+            'SERVER_ERROR': 'حدث خطأ في الخادم. يرجى المحاولة لاحقاً',
+            'AUTH_ERROR': 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى',
+        };
+        return arabicErrors[code] || fallback;
+    };
+
 
     const handleDemoMode = async () => {
         setDemoLoading(true);

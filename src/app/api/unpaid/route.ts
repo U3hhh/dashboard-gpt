@@ -7,16 +7,13 @@ import { isMockMode, mockSubscriptions } from '@/lib/mock-data';
 // GET /api/unpaid - List unpaid subscriptions
 export async function GET() {
     try {
-        // Return mock data if Supabase is not configured
-        if (isMockMode()) {
-            const unpaid = mockSubscriptions.filter(s => s.payment_status === 'unpaid');
-            return NextResponse.json(unpaid);
-        }
-
+        // Try to authenticate first
         const authResult = await authenticate();
 
+        // If not authenticated, return mock data (demo mode)
         if (!authResult.success) {
-            return authResult.error;
+            const unpaid = mockSubscriptions.filter(s => s.payment_status === 'unpaid');
+            return NextResponse.json(unpaid);
         }
 
         const supabase = await createClient();

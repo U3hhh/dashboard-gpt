@@ -14,8 +14,11 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '10');
 
-        // Return mock data if Supabase is not configured
-        if (isMockMode()) {
+        // Try to authenticate first
+        const authResult = await authenticate();
+
+        // If not authenticated, fall back to mock data (demo mode)
+        if (!authResult.success) {
             let filtered = mockSubscribers.map(sub => ({
                 ...sub,
                 subscription_count: mockSubscriptions.filter(s => s.subscriber_id === sub.id).length,
@@ -36,12 +39,6 @@ export async function GET(request: NextRequest) {
                 limit,
                 totalPages: Math.ceil(filtered.length / limit),
             });
-        }
-
-        const authResult = await authenticate();
-
-        if (!authResult.success) {
-            return authResult.error;
         }
 
         const supabase = await createClient();
