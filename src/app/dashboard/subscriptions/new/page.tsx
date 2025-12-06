@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n';
 import { useSettings } from '@/lib/settings-context';
+import DateInputWithPicker from '@/components/DateInputWithPicker';
 import styles from './page.module.css';
 
 interface Plan {
@@ -194,8 +195,8 @@ function NewSubscriptionContent() {
                     subscriber_id: subscriber_id,
                     plan_id: formData.plan_id || null,
                     price: parseFloat(formData.price),
-                    start_date: formData.start_date,
-                    end_date: formData.end_date,
+                    start_date: formData.start_date.replace(/\//g, '-'),
+                    end_date: formData.end_date.replace(/\//g, '-'),
                     status: formData.status,
                     payment_status: formData.payment_status,
                 }),
@@ -325,18 +326,9 @@ function NewSubscriptionContent() {
                                 required
                             />
                         ) : (
-                            <input
-                                type="text"
-                                onFocus={(e) => {
-                                    e.target.type = 'date';
-                                    e.target.value = formData.start_date;
-                                }}
-                                onBlur={(e) => {
-                                    e.target.type = 'text';
-                                    e.target.value = formData.start_date.replace(/-/g, '/');
-                                }}
-                                value={formData.start_date.replace(/-/g, '/')}
-                                onChange={(e) => handleStartDateChange(e.target.value)}
+                            <DateInputWithPicker
+                                value={formData.start_date}
+                                onChange={(val) => handleStartDateChange(val)}
                                 className={styles.input}
                                 required
                             />
@@ -368,18 +360,9 @@ function NewSubscriptionContent() {
                                 required
                             />
                         ) : (
-                            <input
-                                type="text"
-                                onFocus={(e) => {
-                                    e.target.type = 'date';
-                                    e.target.value = formData.end_date;
-                                }}
-                                onBlur={(e) => {
-                                    e.target.type = 'text';
-                                    e.target.value = formData.end_date.replace(/-/g, '/');
-                                }}
-                                value={formData.end_date.replace(/-/g, '/')}
-                                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                            <DateInputWithPicker
+                                value={formData.end_date}
+                                onChange={(val) => setFormData({ ...formData, end_date: val })}
                                 className={styles.input}
                                 required
                             />
