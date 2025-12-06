@@ -536,3 +536,36 @@ h4 {
   background: var(--color-primary);
   color: white;
 }
+
+/* Mobile Utilities */
+.touch-target-min {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mobile-full-width {
+  width: 100%;
+}
+
+@media (max-width: 400px) {
+  :root {
+    --space-4: 0.75rem;
+    --space-5: 1rem;
+    --space-6: 1.25rem;
+    --text-2xl: 1.25rem;
+    --text-3xl: 1.5rem;
+  }
+
+  .hide-xs {
+    display: none !important;
+  }
+}

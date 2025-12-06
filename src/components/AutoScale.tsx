@@ -12,29 +12,25 @@ export default function AutoScale({ children }: { children: React.ReactNode }) {
             const type = getDeviceType();
             setDeviceType(type);
 
-            // Auto-scale logic
-            // This logic attempts to scale the UI to fit a "minimum comfortable width"
-            // if the device is mobile but the content might be too wide.
-            // However, for a responsive app, we usually just want to know the device type.
-
-            // If we want to FORCE a scale (e.g. like a native app feel):
             const width = window.innerWidth;
             let newScale = 1;
 
             if (type === 'mobile') {
-                // Example: If design assumes 375px base, but screen is 320px, scale down.
-                // Or if we want to fit more content, we might scale down slightly.
-                // For now, let's just set the device type class.
+                // Mobile scaling: base design width 375px
+                const mobileBaseWidth = 375;
+                newScale = width / mobileBaseWidth;
+            } else if (type === 'tablet') {
+                // Tablet scaling: base design width 768px
+                const tabletBaseWidth = 768;
+                newScale = width / tabletBaseWidth;
+            } else if (type === 'desktop') {
+                // Desktop scaling: base design width 1440px
+                const desktopBaseWidth = 1440;
+                newScale = width / desktopBaseWidth;
             }
 
             // Apply device type to body for CSS usage
             document.body.setAttribute('data-device', type);
-
-            // Optional: Calculate a scale factor if needed for specific layouts
-            // const designWidth = 1440;
-            // if (width < designWidth && type === 'desktop') {
-            //     newScale = width / designWidth;
-            // }
 
             setScale(newScale);
         };
@@ -50,10 +46,10 @@ export default function AutoScale({ children }: { children: React.ReactNode }) {
         <div
             className={`device-${deviceType}`}
             style={{
-                // transform: scale !== 1 ? `scale(${scale})` : 'none',
-                // transformOrigin: 'top left',
-                // width: scale !== 1 ? `${100 / scale}%` : '100%',
-                minHeight: '100vh'
+                transform: scale !== 1 ? `scale(${scale})` : 'none',
+                transformOrigin: 'top left',
+                width: scale !== 1 ? `${100 / scale}%` : '100%',
+                minHeight: scale !== 1 ? `${100 / scale}vh` : '100vh'
             }}
         >
             {children}

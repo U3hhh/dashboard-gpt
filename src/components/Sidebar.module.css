@@ -195,15 +195,11 @@
 /* Responsive */
 @media (max-width: 768px) {
     .sidebar {
-        transform: translateX(-100%);
+        width: var(--sidebar-width);
     }
 
-    [dir="rtl"] .sidebar {
-        transform: translateX(100%);
-    }
-
-    .sidebar.open {
-        transform: translateX(0);
+    .sidebar.collapsed {
+        width: var(--sidebar-width);
     }
 
     .toggleBtn {

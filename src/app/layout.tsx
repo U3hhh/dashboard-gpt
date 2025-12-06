@@ -11,6 +11,12 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "SubAdmin - Subscription Management Dashboard",
   description: "Multi-tenant SaaS admin dashboard for managing subscriptions, subscribers, invoices, and payments.",
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
 };
 
 export default function RootLayout({

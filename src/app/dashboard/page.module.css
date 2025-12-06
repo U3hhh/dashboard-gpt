@@ -85,9 +85,42 @@
     }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+    .statsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
     .statsGrid {
         grid-template-columns: 1fr;
+    }
+
+    .statCard {
+        padding: var(--space-3);
+    }
+
+    .statIcon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .statValue {
+        font-size: var(--text-xl);
+    }
+
+    .actionBtn {
+        width: 100%;
+        justify-content: center;
+        padding: var(--space-3);
+    }
+
+    .welcome {
+        padding: var(--space-5);
+    }
+
+    .welcomeTitle {
+        font-size: var(--text-2xl);
     }
 }
 
