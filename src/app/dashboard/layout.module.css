@@ -1,82 +1,78 @@
 .layout {
     min-height: 100vh;
     position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Sidebar Wrapper */
-.sidebarWrapper {
-    position: fixed;
-    top: 0;
-    inset-inline-start: 0;
-    height: 100vh;
-    z-index: 100;
-}
-
-/* Topbar Wrapper */
-.topbarWrapper {
-    position: fixed;
-    top: 0;
-    inset-inline-start: var(--sidebar-offset, var(--sidebar-width));
-    inset-inline-end: 0;
-    height: var(--topbar-height);
-    z-index: 90;
-    transition: inset-inline-start var(--transition-slow);
-}
-
-/* Main Content */
-.main {
-    margin-inline-start: var(--sidebar-offset, var(--sidebar-width));
-    margin-top: var(--topbar-height);
-    min-height: calc(100vh - var(--topbar-height));
-    transition: margin-inline-start var(--transition-slow);
-}
-
-.content {
-    padding: var(--space-6);
-    max-width: 1600px;
-}
-
-/* Mobile Overlay */
 .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
-    z-index: 99;
-    animation: fadeIn var(--transition-base) ease;
+    z-index: 45;
+    display: none;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
+.sidebarWrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 50;
+    transition: transform var(--transition-base);
 }
 
-/* Responsive */
+.topbarWrapper {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    margin-left: var(--sidebar-offset);
+    transition: margin-left var(--transition-base);
+    width: calc(100% - var(--sidebar-offset));
+}
+
+.main {
+    flex: 1;
+    margin-left: var(--sidebar-offset);
+    transition: margin-left var(--transition-base);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.content {
+    flex: 1;
+    padding: var(--space-6);
+    max-width: 1600px;
+    width: 100%;
+    margin: 0 auto;
+}
+
 @media (max-width: 768px) {
+    .layout {
+        --sidebar-offset: 0px !important;
+    }
+
     .sidebarWrapper {
         transform: translateX(-100%);
-        transition: transform var(--transition-slow);
-    }
-
-    [dir="rtl"] .sidebarWrapper {
-        transform: translateX(100%);
     }
 
     .sidebarWrapper.open {
         transform: translateX(0);
     }
 
+    .overlay {
+        display: block;
+    }
+
     .topbarWrapper {
-        inset-inline-start: 0;
+        width: 100%;
+        margin-left: 0;
     }
 
     .main {
-        margin-inline-start: 0;
+        margin-left: 0;
     }
 
     .content {

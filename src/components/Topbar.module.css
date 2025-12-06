@@ -1,96 +1,95 @@
 .topbar {
-    position: fixed;
-    top: 0;
-    inset-inline-start: var(--sidebar-width);
-    inset-inline-end: 0;
     height: var(--topbar-height);
+    background: var(--color-surface);
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
+    border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
-    gap: var(--space-4);
     padding: 0 var(--space-6);
-    background: var(--color-surface);
-    backdrop-filter: blur(var(--blur-lg));
-    -webkit-backdrop-filter: blur(var(--blur-lg));
-    border-bottom: 1px solid var(--color-border);
-    z-index: 90;
-    transition: inset-inline-start var(--transition-slow);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    gap: var(--space-4);
 }
 
-.sidebar-collapsed+.topbar,
-.topbar.sidebar-collapsed {
-    inset-inline-start: var(--sidebar-collapsed);
-}
-
-/* Mobile Menu Button */
 .menuBtn {
     display: none;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
     background: transparent;
     border: none;
-    color: var(--color-text-muted);
+    color: var(--color-text);
     cursor: pointer;
-    border-radius: var(--radius-md);
-    transition: all var(--transition-base);
+    padding: var(--space-2);
 }
 
-.menuBtn:hover {
-    background: var(--color-surface-hover);
-    color: var(--color-text);
+.mobileLogo {
+    display: none;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.mobileLogoText {
+    font-weight: 700;
+    font-size: var(--text-lg);
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.demoBadge {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .spacer {
     flex: 1;
 }
 
-/* Actions */
 .actions {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: var(--space-4);
 }
 
-/* Language Toggle */
 .langToggle {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-2) var(--space-3);
-    background: var(--color-surface);
+    background: transparent;
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    color: var(--color-text-muted);
+    color: var(--color-text);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
     cursor: pointer;
+    font-size: var(--text-xs);
     transition: all var(--transition-base);
 }
 
 .langToggle:hover {
     background: var(--color-surface-hover);
-    color: var(--color-text);
-    border-color: var(--color-border-accent);
+    border-color: var(--color-text-muted);
 }
 
-.langCode {
-    font-size: var(--text-sm);
-    font-weight: 600;
-}
-
-/* Icon Button */
 .iconBtn {
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
     background: transparent;
     border: none;
     color: var(--color-text-muted);
     cursor: pointer;
-    border-radius: var(--radius-md);
+    padding: var(--space-2);
+    border-radius: 50%;
     transition: all var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .iconBtn:hover {
@@ -98,67 +97,61 @@
     color: var(--color-text);
 }
 
-.iconBtn .badge {
+.badge {
     position: absolute;
-    top: 6px;
-    inset-inline-end: 6px;
-    min-width: 16px;
+    top: 0;
+    right: 0;
+    width: 16px;
     height: 16px;
+    background: var(--color-danger);
+    color: white;
+    font-size: 10px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 4px;
-    font-size: 10px;
-    font-weight: 700;
-    color: white;
-    background: var(--color-danger);
-    border-radius: var(--radius-full);
+    border: 2px solid var(--color-bg);
 }
 
-/* User Menu */
 .userMenu {
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    padding: var(--space-2);
-    padding-inline-end: var(--space-3);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    cursor: pointer;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
     transition: all var(--transition-base);
+    border: 1px solid transparent;
 }
 
 .userMenu:hover {
     background: var(--color-surface-hover);
-    border-color: var(--color-border-accent);
+    border-color: var(--color-border);
 }
 
 .avatar {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-    border-radius: var(--radius-md);
-    font-size: var(--text-sm);
-    font-weight: 700;
     color: white;
+    font-weight: 600;
+    font-size: var(--text-sm);
+    box-shadow: 0 2px 10px var(--color-primary-glow);
 }
 
 .userInfo {
     display: flex;
     flex-direction: column;
+    line-height: 1.2;
 }
 
 .userEmail {
     font-size: var(--text-sm);
+    font-weight: 500;
     color: var(--color-text);
-    max-width: 150px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .userRole {
@@ -166,60 +159,20 @@
     color: var(--color-text-muted);
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-    .userInfo {
-        display: none;
-    }
-}
-
 @media (max-width: 768px) {
-    .topbar {
-        inset-inline-start: 0;
-        padding: 0 var(--space-3);
-        gap: var(--space-2);
+    .menuBtn {
+        display: block;
     }
 
-    .menuBtn {
+    .mobileLogo {
         display: flex;
     }
 
-    .langCode {
+    .userInfo {
         display: none;
     }
 
-    .userMenu {
-        padding: var(--space-1);
-        border: none;
-        background: transparent;
+    .topbar {
+        padding: 0 var(--space-4);
     }
-
-    .userMenu:hover {
-        background: var(--color-surface-hover);
-    }
-
-    .userInfo,
-    .userMenu svg {
-        display: none;
-    }
-
-    .avatar {
-        width: 32px;
-        height: 32px;
-        font-size: var(--text-xs);
-    }
-}
-
-/* Demo Badge */
-.demoBadge {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-1) var(--space-3);
-    background: rgba(139, 92, 246, 0.15);
-    border: 1px solid rgba(139, 92, 246, 0.3);
-    border-radius: var(--radius-full);
-    color: var(--color-primary-light);
-    font-size: var(--text-xs);
-    font-weight: 600;
 }
