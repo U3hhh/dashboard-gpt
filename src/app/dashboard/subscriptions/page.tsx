@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage, formatIQD, formatDate } from '@/lib/i18n';
@@ -26,6 +26,14 @@ interface PaginatedResponse {
 }
 
 export default function SubscriptionsPage() {
+    return (
+        <Suspense fallback={<div className={styles.loading}><div className={styles.spinner}></div></div>}>
+            <SubscriptionsContent />
+        </Suspense>
+    );
+}
+
+function SubscriptionsContent() {
     const { t, language } = useLanguage();
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [loading, setLoading] = useState(true);
