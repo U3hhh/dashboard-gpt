@@ -99,9 +99,12 @@ function SubscriptionsContent() {
 
         fetch(`/api/subscriptions?${params}`)
             .then(res => res.json())
-            .then((data: PaginatedResponse) => {
-                setSubscriptions(data?.data && Array.isArray(data.data) ? data.data : []);
-                setTotalPages(data?.totalPages || 1);
+            .then((response) => {
+                // Handle both old format {data, totalPages} and new format {data, pagination: {totalPages}}
+                const data = response?.data && Array.isArray(response.data) ? response.data : [];
+                const pages = response?.pagination?.totalPages || response?.totalPages || 1;
+                setSubscriptions(data);
+                setTotalPages(pages);
                 setLoading(false);
             })
             .catch(() => {
@@ -233,31 +236,16 @@ function SubscriptionsContent() {
                             </tr>
                         </thead>
                         <tbody>
-                            {groupedSubscriptions.map((group) => {
-                                const sub = group.latest;
+                            {subscriptions.map((sub) => {
                                 const statusBadge = getStatusBadge(sub.status);
                                 const paymentBadge = getPaymentBadge(sub.payment_status);
                                 return (
                                     <tr key={sub.id}>
                                         <td>
                                             <div className={styles.subscriber}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <span className={styles.subscriberName}>
-                                                        {sub.subscriber?.name || 'Unknown'}
-                                                    </span>
-                                                    {group.count > 1 && (
-                                                        <span style={{
-                                                            fontSize: '0.7rem',
-                                                            background: 'var(--color-primary)',
-                                                            color: 'white',
-                                                            padding: '0.1rem 0.4rem',
-                                                            borderRadius: '1rem',
-                                                            fontWeight: 'bold'
-                                                        }}>
-                                                            {group.count}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                                <span className={styles.subscriberName}>
+                                                    {sub.subscriber?.name || 'Unknown'}
+                                                </span>
                                                 <span className={styles.subscriberEmail}>
                                                     {sub.subscriber?.email || ''}
                                                 </span>
@@ -350,27 +338,28 @@ function SubscriptionsContent() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-                <div className={styles.pagination}>
-                    <button
-                        className={styles.pageBtn}
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                    >
-                        ←
-                    </button>
-                    <span className={styles.pageInfo}>
-                        {page} / {totalPages}
-                    </span>
-                    <button
-                        className={styles.pageBtn}
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                    >
-                        →
-                    </button>
-                </div>
-            )}
+            <div className={styles.pagination}>
+                <span className={styles.pageInfo} style={{ marginRight: 'auto' }}>
+                    {language === 'ar' ? `المجموع: ${subscriptions.length}` : `Total: ${subscriptions.length}`}
+                </span>
+                <button
+                    className={styles.pageBtn}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                >
+                    ← {language === 'ar' ? 'السابق' : 'Prev'}
+                </button>
+                <span className={styles.pageInfo}>
+                    {language === 'ar' ? `صفحة ${page} من ${totalPages}` : `Page ${page} of ${totalPages}`}
+                </span>
+                <button
+                    className={styles.pageBtn}
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                >
+                    {language === 'ar' ? 'التالي' : 'Next'} →
+                </button>
+            </div>
         </div>
     );
 }
