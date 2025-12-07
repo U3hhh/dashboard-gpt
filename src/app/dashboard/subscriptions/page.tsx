@@ -236,16 +236,31 @@ function SubscriptionsContent() {
                             </tr>
                         </thead>
                         <tbody>
-                            {subscriptions.map((sub) => {
+                            {groupedSubscriptions.map((group) => {
+                                const sub = group.latest;
                                 const statusBadge = getStatusBadge(sub.status);
                                 const paymentBadge = getPaymentBadge(sub.payment_status);
                                 return (
                                     <tr key={sub.id}>
                                         <td>
                                             <div className={styles.subscriber}>
-                                                <span className={styles.subscriberName}>
-                                                    {sub.subscriber?.name || 'Unknown'}
-                                                </span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <span className={styles.subscriberName}>
+                                                        {sub.subscriber?.name || 'Unknown'}
+                                                    </span>
+                                                    {group.count > 1 && (
+                                                        <span style={{
+                                                            fontSize: '0.7rem',
+                                                            background: 'var(--color-primary)',
+                                                            color: 'white',
+                                                            padding: '0.15rem 0.5rem',
+                                                            borderRadius: '1rem',
+                                                            fontWeight: 'bold'
+                                                        }}>
+                                                            {group.count} {language === 'ar' ? 'اشتراكات' : 'subs'}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <span className={styles.subscriberEmail}>
                                                     {sub.subscriber?.email || ''}
                                                 </span>
