@@ -37,6 +37,43 @@ export default function SubscriptionsPage() {
     const router = useRouter();
 
     // ... (handlers)
+    const handleRenew = (subscriberId: string) => {
+        if (subscriberId) {
+            router.push(`/dashboard/subscriptions/new?subscriberId=${subscriberId}`);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا الاشتراك؟' : 'Are you sure you want to delete this subscription?')) return;
+
+        try {
+            const res = await fetch(`/api/subscriptions/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (res.ok) {
+                // Refresh list
+                setPage(1); // Reset to first page to trigger re-fetch
+                // Or force re-fetch
+                const params = new URLSearchParams({
+                    page: page.toString(),
+                    limit: '10',
+                });
+                if (filter !== 'all') params.append('status', filter);
+
+                fetch(`/api/subscriptions?${params}`)
+                    .then(res => res.json())
+                    .then((data: PaginatedResponse) => {
+                        setSubscriptions(data?.data && Array.isArray(data.data) ? data.data : []);
+                        setTotalPages(data?.totalPages || 1);
+                    });
+            } else {
+                alert('Failed to delete subscription');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+        }
+    };
 
     useEffect(() => {
         setLoading(true);
