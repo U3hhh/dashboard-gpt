@@ -123,7 +123,9 @@ export default function DashboardPage() {
 
     const getDaysUntil = (date: string): number => {
         const endDate = new Date(date);
+        endDate.setHours(0, 0, 0, 0);
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const diffTime = endDate.getTime() - today.getTime();
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };

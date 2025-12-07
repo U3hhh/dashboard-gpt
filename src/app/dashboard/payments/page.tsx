@@ -14,14 +14,15 @@ interface Payment {
     reference: string | null;
     paid_at: string;
     recorded_by: string;
+    invoice?: {
+        invoice_number: string;
+    };
+    subscription?: {
+        subscriber?: {
+            name: string;
+        }
+    }
 }
-
-const mockPayments: Payment[] = [
-    { id: '1', invoice_id: '1', invoice_number: 'INV-2024-00001', subscriber_name: 'أحمد محمد', amount: 25000, method: 'cash', reference: null, paid_at: '2024-11-14T10:30:00Z', recorded_by: 'admin@example.com' },
-    { id: '2', invoice_id: '2', invoice_number: 'INV-2024-00002', subscriber_name: 'سارة علي', amount: 50000, method: 'bank_transfer', reference: 'TXN-12345', paid_at: '2024-11-18T14:20:00Z', recorded_by: 'admin@example.com' },
-    { id: '3', invoice_id: '6', invoice_number: 'INV-2024-00006', subscriber_name: 'نور الدين', amount: 500000, method: 'mobile_wallet', reference: 'ZC-98765', paid_at: '2024-10-15T09:00:00Z', recorded_by: 'admin@example.com' },
-    { id: '4', invoice_id: '7', invoice_number: 'INV-2024-00007', subscriber_name: 'زينب حسين', amount: 25000, method: 'cash', reference: null, paid_at: '2024-11-28T16:45:00Z', recorded_by: 'admin@example.com' },
-];
 
 export default function PaymentsPage() {
     const { language } = useLanguage();
@@ -35,11 +36,22 @@ export default function PaymentsPage() {
         reference: '',
     });
 
-    useEffect(() => {
-        setTimeout(() => {
-            setPayments(mockPayments);
+    const fetchPayments = async () => {
+        try {
+            const res = await fetch('/api/payments?limit=50');
+            if (res.ok) {
+                const data = await res.json();
+                setPayments(data.data || []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch payments:', error);
+        } finally {
             setLoading(false);
-        }, 500);
+        }
+    };
+
+    useEffect(() => {
+        fetchPayments();
     }, []);
 
     const t = {
@@ -85,20 +97,12 @@ export default function PaymentsPage() {
         setShowModal(true);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const newPayment: Payment = {
-            id: Date.now().toString(),
-            invoice_id: Date.now().toString(),
-            invoice_number: formData.invoice_number,
-            subscriber_name: 'New Subscriber',
-            amount: parseFloat(formData.amount),
-            method: formData.method,
-            reference: formData.reference || null,
-            paid_at: new Date().toISOString(),
-            recorded_by: 'admin@example.com',
-        };
-        setPayments([newPayment, ...payments]);
+        // Note: Creating a payment directly requires an invoice_id or subscription_id
+        // For this simple UI, we'd need to lookup the invoice by number first
+        // This is a simplified implementation
+        alert('To record a payment, please go to the Invoices section and mark an invoice as paid, or implement invoice lookup here.');
         setShowModal(false);
     };
 
@@ -157,8 +161,8 @@ export default function PaymentsPage() {
                     <tbody>
                         {payments.map((payment) => (
                             <tr key={payment.id}>
-                                <td style={{ fontWeight: 600, fontFamily: 'monospace' }}>{payment.invoice_number}</td>
-                                <td>{payment.subscriber_name}</td>
+                                <td style={{ fontWeight: 600, fontFamily: 'monospace' }}>{payment.invoice?.invoice_number || payment.invoice_number || '-'}</td>
+                                <td>{payment.subscription?.subscriber?.name || payment.subscriber_name || 'Unknown'}</td>
                                 <td className={styles.price}>{payment.amount.toLocaleString()} IQD</td>
                                 <td>
                                     <span style={{

@@ -14,14 +14,6 @@ interface Plan {
     is_active: boolean;
 }
 
-const mockPlans: Plan[] = [
-    { id: '1', name: 'أساسي شهري', description: 'الخطة الأساسية الشهرية', price: 25000, period_value: 1, period_unit: 'month', is_active: true },
-    { id: '2', name: 'متقدم شهري', description: 'الخطة المتقدمة الشهرية', price: 50000, period_value: 1, period_unit: 'month', is_active: true },
-    { id: '3', name: 'أساسي سنوي', description: 'الخطة الأساسية السنوية', price: 250000, period_value: 1, period_unit: 'year', is_active: true },
-    { id: '4', name: 'متقدم سنوي', description: 'الخطة المتقدمة السنوية', price: 500000, period_value: 1, period_unit: 'year', is_active: true },
-    { id: '5', name: 'أسبوعي', description: 'اشتراك أسبوعي', price: 10000, period_value: 1, period_unit: 'week', is_active: true },
-];
-
 export default function PlansPage() {
     const { language } = useLanguage();
     const [plans, setPlans] = useState<Plan[]>([]);
@@ -36,11 +28,22 @@ export default function PlansPage() {
         period_unit: 'month' as Plan['period_unit'],
     });
 
-    useEffect(() => {
-        setTimeout(() => {
-            setPlans(mockPlans);
+    const fetchPlans = async () => {
+        try {
+            const res = await fetch('/api/plans');
+            if (res.ok) {
+                const data = await res.json();
+                setPlans(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch plans:', error);
+        } finally {
             setLoading(false);
-        }, 500);
+        }
+    };
+
+    useEffect(() => {
+        fetchPlans();
     }, []);
 
     const t = {
@@ -105,40 +108,74 @@ export default function PlansPage() {
         setShowModal(true);
     };
 
-    const handleToggleStatus = (plan: Plan) => {
-        setPlans(plans.map(p =>
-            p.id === plan.id ? { ...p, is_active: !p.is_active } : p
-        ));
+    const handleToggleStatus = async (plan: Plan) => {
+        try {
+            const res = await fetch(`/api/plans/${plan.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_active: !plan.is_active }),
+            });
+
+            if (res.ok) {
+                const updatedPlan = await res.json();
+                setPlans(plans.map(p => p.id === plan.id ? updatedPlan : p));
+            }
+        } catch (error) {
+            console.error('Failed to toggle status:', error);
+        }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleDeletePlan = async (id: string) => {
+        if (!confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذه الخطة؟' : 'Are you sure you want to delete this plan?')) return;
+
+        try {
+            const res = await fetch(`/api/plans/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (res.ok) {
+                setPlans(plans.filter(p => p.id !== id));
+            } else {
+                alert('Failed to delete plan');
+            }
+        } catch (error) {
+            console.error('Failed to delete plan:', error);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (editingPlan) {
-            setPlans(plans.map(p =>
-                p.id === editingPlan.id
-                    ? {
-                        ...p,
-                        name: formData.name,
-                        description: formData.description,
-                        price: parseFloat(formData.price),
-                        period_value: parseInt(formData.period_value),
-                        period_unit: formData.period_unit,
-                    }
-                    : p
-            ));
-        } else {
-            const newPlan: Plan = {
-                id: Date.now().toString(),
+        try {
+            const payload = {
                 name: formData.name,
                 description: formData.description,
                 price: parseFloat(formData.price),
                 period_value: parseInt(formData.period_value),
                 period_unit: formData.period_unit,
-                is_active: true,
             };
-            setPlans([...plans, newPlan]);
+
+            let res;
+            if (editingPlan) {
+                res = await fetch(`/api/plans/${editingPlan.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+            } else {
+                res = await fetch('/api/plans', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+            }
+
+            if (res.ok) {
+                await fetchPlans(); // Refresh list
+                setShowModal(false);
+            }
+        } catch (error) {
+            console.error('Failed to save plan:', error);
         }
-        setShowModal(false);
     };
 
     if (loading) {
@@ -205,6 +242,17 @@ export default function PlansPage() {
                                             style={{ color: plan.is_active ? 'var(--color-danger)' : 'var(--color-success)' }}
                                         >
                                             {plan.is_active ? t.deactivate : t.activate}
+                                        </button>
+                                        <button
+                                            className={styles.viewBtn}
+                                            onClick={() => handleDeletePlan(plan.id)}
+                                            style={{ color: 'var(--color-danger)' }}
+                                            title={language === 'ar' ? 'حذف' : 'Delete'}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <polyline points="3 6 5 6 21 6" />
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                            </svg>
                                         </button>
                                     </div>
                                 </td>

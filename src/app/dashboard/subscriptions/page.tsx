@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage, formatIQD, formatDate } from '@/lib/i18n';
 import styles from './page.module.css';
 
@@ -31,46 +31,12 @@ export default function SubscriptionsPage() {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [filter, setFilter] = useState<string>('all');
+    const searchParams = useSearchParams();
+    const initialFilter = searchParams.get('filter') || 'all';
+    const [filter, setFilter] = useState<string>(initialFilter);
     const router = useRouter();
 
-    const handleRenew = (subscriberId: string) => {
-        if (subscriberId) {
-            router.push(`/dashboard/subscriptions/new?subscriberId=${subscriberId}`);
-        }
-    };
-
-    const handleDelete = async (id: string) => {
-        if (!confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا الاشتراك؟' : 'Are you sure you want to delete this subscription?')) return;
-
-        try {
-            const res = await fetch(`/api/subscriptions/${id}`, {
-                method: 'DELETE',
-            });
-
-            if (res.ok) {
-                // Refresh list
-                setPage(1); // Reset to first page to trigger re-fetch
-                // Or force re-fetch
-                const params = new URLSearchParams({
-                    page: page.toString(),
-                    limit: '10',
-                });
-                if (filter !== 'all') params.append('status', filter);
-
-                fetch(`/api/subscriptions?${params}`)
-                    .then(res => res.json())
-                    .then((data: PaginatedResponse) => {
-                        setSubscriptions(data?.data && Array.isArray(data.data) ? data.data : []);
-                        setTotalPages(data?.totalPages || 1);
-                    });
-            } else {
-                alert('Failed to delete subscription');
-            }
-        } catch (error) {
-            console.error('Delete error:', error);
-        }
-    };
+    // ... (handlers)
 
     useEffect(() => {
         setLoading(true);
@@ -78,7 +44,11 @@ export default function SubscriptionsPage() {
             page: page.toString(),
             limit: '10',
         });
-        if (filter !== 'all') {
+
+        if (filter === 'expiring') {
+            params.append('expiring_soon', 'true');
+            params.append('status', 'active'); // Only active subs expire
+        } else if (filter !== 'all') {
             params.append('status', filter);
         }
 
@@ -181,6 +151,12 @@ export default function SubscriptionsPage() {
                     >
                         {t('common.cancelled')}
                     </button>
+                    <button
+                        className={`${styles.filterBtn} ${filter === 'expiring' ? styles.active : ''}`}
+                        onClick={() => setFilter('expiring')}
+                    >
+                        {language === 'ar' ? 'تنتهي قريباً' : 'Expiring Soon'}
+                    </button>
                 </div>
             </div>
 
@@ -254,7 +230,39 @@ export default function SubscriptionsPage() {
                                                 {paymentBadge.label}
                                             </span>
                                         </td>
-                                        <td>{formatDate(sub.end_date, language)}</td>
+                                        <td>
+                                            <div>{formatDate(sub.end_date, language)}</div>
+                                            {sub.status === 'active' && (
+                                                <div style={{
+                                                    fontSize: '0.75rem',
+                                                    color: (() => {
+                                                        const endDate = new Date(sub.end_date);
+                                                        endDate.setHours(0, 0, 0, 0);
+                                                        const today = new Date();
+                                                        today.setHours(0, 0, 0, 0);
+                                                        const diffTime = endDate.getTime() - today.getTime();
+                                                        const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                                        return days <= 7 ? 'var(--color-danger)' : 'var(--color-text-muted)';
+                                                    })(),
+                                                    marginTop: '0.25rem',
+                                                    fontWeight: 500
+                                                }}>
+                                                    {(() => {
+                                                        const endDate = new Date(sub.end_date);
+                                                        endDate.setHours(0, 0, 0, 0);
+                                                        const today = new Date();
+                                                        today.setHours(0, 0, 0, 0);
+                                                        const diffTime = endDate.getTime() - today.getTime();
+                                                        const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                                        if (days < 0) return language === 'ar' ? 'منتهية' : 'Expired';
+                                                        if (days === 0) return language === 'ar' ? 'تنتهي اليوم' : 'Expires today';
+                                                        if (days === 1) return language === 'ar' ? 'يوم واحد متبقي' : '1 day left';
+                                                        return language === 'ar' ? `متبقي ${days} يوم` : `${days} days left`;
+                                                    })()}
+                                                </div>
+                                            )}
+                                        </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                 <button

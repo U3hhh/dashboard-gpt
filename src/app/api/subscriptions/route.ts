@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
         // Filter options (status already defined above)
         const paymentStatus = searchParams.get('payment_status');
         const subscriberId = searchParams.get('subscriber_id');
+        const expiringSoon = searchParams.get('expiring_soon') === 'true';
 
         // Build query
         let query = supabase
@@ -54,8 +55,14 @@ export async function GET(request: NextRequest) {
         subscriber:subscribers(id, name, email, phone),
         plan:plans(id, name, price)
       `, { count: 'exact' })
-            .eq('organization_id', authResult.context.organizationId)
-            .order('created_at', { ascending: false });
+            .eq('organization_id', authResult.context.organizationId);
+
+        // Apply sorting
+        if (expiringSoon) {
+            query = query.order('end_date', { ascending: true });
+        } else {
+            query = query.order('created_at', { ascending: false });
+        }
 
         if (status) {
             query = query.eq('status', status);
@@ -65,6 +72,16 @@ export async function GET(request: NextRequest) {
         }
         if (subscriberId) {
             query = query.eq('subscriber_id', subscriberId);
+        }
+        if (expiringSoon) {
+            const today = new Date().toISOString().split('T')[0];
+            const sevenDaysLater = new Date();
+            sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+            const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0];
+
+            query = query
+                .gte('end_date', today)
+                .lte('end_date', sevenDaysLaterStr);
         }
 
         const { data, count, error } = await query.range(from, to);

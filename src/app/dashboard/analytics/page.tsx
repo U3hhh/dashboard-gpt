@@ -11,25 +11,51 @@ interface MonthlyData {
     newSubscribers: number;
 }
 
-const mockData: MonthlyData[] = [
-    { month: '2024-07', revenue: 450000, subscriptions: 18, newSubscribers: 5 },
-    { month: '2024-08', revenue: 525000, subscriptions: 21, newSubscribers: 7 },
-    { month: '2024-09', revenue: 600000, subscriptions: 24, newSubscribers: 6 },
-    { month: '2024-10', revenue: 575000, subscriptions: 23, newSubscribers: 4 },
-    { month: '2024-11', revenue: 725000, subscriptions: 29, newSubscribers: 8 },
-    { month: '2024-12', revenue: 685000, subscriptions: 27, newSubscribers: 3 },
-];
+interface AnalyticsData {
+    revenue: {
+        labels: string[];
+        data: number[];
+    };
+    subscriptions: {
+        active: number;
+        expired: number;
+        cancelled: number;
+        pending: number;
+    };
+    subscribers: {
+        total: number;
+        active: number;
+        inactive: number;
+    };
+    trends: {
+        date: string;
+        revenue: number;
+        subscriptions: number;
+        subscribers: number;
+    }[];
+}
 
 export default function AnalyticsPage() {
     const { language } = useLanguage();
-    const [data, setData] = useState<MonthlyData[]>([]);
+    const [data, setData] = useState<AnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        setTimeout(() => {
-            setData(mockData);
-            setLoading(false);
-        }, 500);
+        const fetchData = async () => {
+            try {
+                const res = await fetch('/api/analytics?period=year');
+                if (res.ok) {
+                    const result = await res.json();
+                    setData(result);
+                }
+            } catch (error) {
+                console.error('Failed to fetch analytics:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
     }, []);
 
     const t = {
@@ -44,16 +70,6 @@ export default function AnalyticsPage() {
         monthlyTrend: language === 'ar' ? 'الاتجاه الشهري' : 'Monthly Trend',
     };
 
-    const totalRevenue = data.reduce((sum, d) => sum + d.revenue, 0);
-    const avgRevenue = data.length > 0 ? totalRevenue / data.length : 0;
-    const totalNewSubs = data.reduce((sum, d) => sum + d.newSubscribers, 0);
-    const maxRevenue = Math.max(...data.map(d => d.revenue));
-
-    const formatMonth = (monthStr: string) => {
-        const date = new Date(monthStr + '-01');
-        return date.toLocaleDateString(language === 'ar' ? 'ar-IQ' : 'en-US', { month: 'short', year: 'numeric' });
-    };
-
     if (loading) {
         return (
             <div className={styles.loading}>
@@ -61,6 +77,17 @@ export default function AnalyticsPage() {
             </div>
         );
     }
+
+    if (!data) return null;
+
+    const totalRevenue = data.revenue.data.reduce((a, b) => a + b, 0);
+    const avgRevenue = data.revenue.data.length > 0 ? totalRevenue / data.revenue.data.length : 0;
+    const maxRevenue = Math.max(...data.revenue.data, 1); // Avoid division by zero
+
+    const formatMonth = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString(language === 'ar' ? 'ar-IQ' : 'en-US', { month: 'short', year: 'numeric' });
+    };
 
     return (
         <div className={styles.page}>
@@ -106,7 +133,7 @@ export default function AnalyticsPage() {
                     </div>
                     <div className={styles.statContent}>
                         <span className={styles.statLabel}>{t.totalSubscribers}</span>
-                        <span className={styles.statValue}>{totalNewSubs}</span>
+                        <span className={styles.statValue}>{data.subscribers.total}</span>
                     </div>
                 </div>
             </div>
@@ -115,21 +142,21 @@ export default function AnalyticsPage() {
             <div className={styles.chartCard}>
                 <h2 className={styles.chartTitle}>{t.monthlyTrend} - {t.revenue}</h2>
                 <div className={styles.chart}>
-                    {data.map((item, index) => (
+                    {data.revenue.data.map((amount, index) => (
                         <div key={index} className={styles.chartBar}>
                             <div className={styles.barContainer}>
                                 <div
                                     className={styles.bar}
                                     style={{
-                                        height: `${(item.revenue / maxRevenue) * 100}%`,
+                                        height: `${(amount / maxRevenue) * 100}%`,
                                     }}
                                 >
                                     <span className={styles.barValue}>
-                                        {(item.revenue / 1000).toFixed(0)}K
+                                        {(amount / 1000).toFixed(0)}K
                                     </span>
                                 </div>
                             </div>
-                            <span className={styles.barLabel}>{formatMonth(item.month)}</span>
+                            <span className={styles.barLabel}>{formatMonth(data.revenue.labels[index])}</span>
                         </div>
                     ))}
                 </div>
@@ -147,12 +174,12 @@ export default function AnalyticsPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {data.map((item, index) => (
+                        {data.trends.map((item, index) => (
                             <tr key={index}>
-                                <td style={{ fontWeight: 600 }}>{formatMonth(item.month)}</td>
+                                <td style={{ fontWeight: 600 }}>{formatMonth(item.date)}</td>
                                 <td style={{ color: 'var(--color-primary-light)' }}>{item.revenue.toLocaleString()} IQD</td>
                                 <td>{item.subscriptions}</td>
-                                <td style={{ color: 'var(--color-success)' }}>+{item.newSubscribers}</td>
+                                <td style={{ color: 'var(--color-success)' }}>+{item.subscribers}</td>
                             </tr>
                         ))}
                     </tbody>

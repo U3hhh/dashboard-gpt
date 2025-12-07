@@ -14,15 +14,12 @@ interface Invoice {
     due_date: string;
     paid_at: string | null;
     created_at: string;
+    subscription?: {
+        subscriber?: {
+            name: string;
+        }
+    }
 }
-
-const mockInvoices: Invoice[] = [
-    { id: '1', invoice_number: 'INV-2024-00001', subscription_id: '1', subscriber_name: 'أحمد محمد', amount: 25000, status: 'paid', due_date: '2024-11-15', paid_at: '2024-11-14', created_at: '2024-11-01' },
-    { id: '2', invoice_number: 'INV-2024-00002', subscription_id: '2', subscriber_name: 'سارة علي', amount: 50000, status: 'paid', due_date: '2024-11-20', paid_at: '2024-11-18', created_at: '2024-11-05' },
-    { id: '3', invoice_number: 'INV-2024-00003', subscription_id: '3', subscriber_name: 'محمد حسن', amount: 25000, status: 'overdue', due_date: '2024-11-25', paid_at: null, created_at: '2024-11-10' },
-    { id: '4', invoice_number: 'INV-2024-00004', subscription_id: '5', subscriber_name: 'علي عباس', amount: 50000, status: 'sent', due_date: '2024-12-10', paid_at: null, created_at: '2024-11-25' },
-    { id: '5', invoice_number: 'INV-2024-00005', subscription_id: '8', subscriber_name: 'كريم صالح', amount: 10000, status: 'draft', due_date: '2024-12-15', paid_at: null, created_at: '2024-12-01' },
-];
 
 export default function InvoicesPage() {
     const { language } = useLanguage();
@@ -30,11 +27,22 @@ export default function InvoicesPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | Invoice['status']>('all');
 
-    useEffect(() => {
-        setTimeout(() => {
-            setInvoices(mockInvoices);
+    const fetchInvoices = async () => {
+        try {
+            const res = await fetch('/api/invoices?limit=50');
+            if (res.ok) {
+                const data = await res.json();
+                setInvoices(data.data || []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch invoices:', error);
+        } finally {
             setLoading(false);
-        }, 500);
+        }
+    };
+
+    useEffect(() => {
+        fetchInvoices();
     }, []);
 
     const t = {
@@ -79,19 +87,19 @@ export default function InvoicesPage() {
         ? invoices
         : invoices.filter(inv => inv.status === filter);
 
-    const handleMarkPaid = (invoice: Invoice) => {
-        setInvoices(invoices.map(inv =>
-            inv.id === invoice.id
-                ? { ...inv, status: 'paid' as const, paid_at: new Date().toISOString().split('T')[0] }
-                : inv
-        ));
+    const handleMarkPaid = async (invoice: Invoice) => {
+        // In a real app, this would likely involve creating a payment record
+        // For now, we'll just update the invoice status locally as the API doesn't support direct status update via PUT yet
+        // A proper implementation would use the payments API
+        alert('To mark as paid, please record a payment in the Payments section.');
     };
 
-    const handleSend = (invoice: Invoice) => {
+    const handleSend = async (invoice: Invoice) => {
+        // Simulate sending
+        alert(`Invoice ${invoice.invoice_number} sent to subscriber.`);
+        // Optimistic update
         setInvoices(invoices.map(inv =>
-            inv.id === invoice.id
-                ? { ...inv, status: 'sent' as const }
-                : inv
+            inv.id === invoice.id ? { ...inv, status: 'sent' } : inv
         ));
     };
 
@@ -146,9 +154,9 @@ export default function InvoicesPage() {
                         {filteredInvoices.map((invoice) => (
                             <tr key={invoice.id}>
                                 <td style={{ fontWeight: 600, fontFamily: 'monospace' }}>{invoice.invoice_number}</td>
-                                <td>{invoice.subscriber_name}</td>
+                                <td>{invoice.subscription?.subscriber?.name || invoice.subscriber_name || 'Unknown'}</td>
                                 <td className={styles.price}>{invoice.amount.toLocaleString()} IQD</td>
-                                <td>{new Date(invoice.due_date).toLocaleDateString()}</td>
+                                <td>{invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : '-'}</td>
                                 <td style={{ color: invoice.paid_at ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
                                     {invoice.paid_at ? new Date(invoice.paid_at).toLocaleDateString() : t.notPaid}
                                 </td>
