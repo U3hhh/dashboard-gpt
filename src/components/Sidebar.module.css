@@ -1,0 +1,171 @@
+.sidebar {
+    position: relative;
+    height: 100%;
+    width: var(--sidebar-width);
+    background: var(--color-surface);
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    transition: width var(--transition-base);
+    z-index: 50;
+}
+
+.collapsed {
+    width: var(--sidebar-collapsed);
+}
+
+.logo {
+    height: var(--topbar-height);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+    gap: var(--space-3);
+}
+
+.collapsed .logo {
+    padding: 0;
+    justify-content: center;
+}
+
+.logoIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary);
+}
+
+.logoText {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity var(--transition-base);
+}
+
+.collapsed .logoText {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+}
+
+.logoTitle {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.logoVersion {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+}
+
+.orgInfo {
+    padding: var(--space-4) var(--space-6);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.orgDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-success);
+    box-shadow: 0 0 10px var(--color-success);
+}
+
+.orgName {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nav {
+    flex: 1;
+    padding: var(--space-4) var(--space-3);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.navItem {
+    display: flex;
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: all var(--transition-base);
+    position: relative;
+    gap: var(--space-3);
+    min-height: 44px;
+}
+
+.collapsed .navItem {
+    padding: var(--space-3);
+    justify-content: center;
+}
+
+.navItem:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
+}
+
+.navItemActive {
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--color-primary-light);
+}
+
+.navIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.navLabel {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.activeIndicator {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    background: var(--color-primary);
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+    box-shadow: 0 0 10px var(--color-primary-glow);
+}
+
+.toggleBtn {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.toggleBtn:hover {
+    color: var(--color-text);
+    background: var(--color-surface-hover);
+}
