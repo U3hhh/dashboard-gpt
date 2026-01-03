@@ -55,6 +55,12 @@ export async function GET(request: NextRequest) {
                         }
                     }
                 });
+
+                // If expiring_soon is requested, we need to make sure we didn't just filter out 
+                // the "best" status because it wasn't in the expiring soon window initially.
+                // However, 'filtered' here is already the full list of subscriptions for all subscribers.
+                // Wait, in mock logic 'filtered' is initialized from 'mockSubscriptions'.
+
                 filtered = Object.values(subscriberStatusMap);
             }
 
@@ -166,6 +172,25 @@ export async function GET(request: NextRequest) {
         const isHistoryRequest = subscriberId !== null;
 
         if (!isUnpaidFilter && !isHistoryRequest) {
+            // If we are filtering by expiring_soon, we need to fetch all active/pending subs 
+            // for these subscribers to see if any have renewed (later end date)
+            if (expiringSoon && resultData.length > 0) {
+                const subscriberIds = [...new Set(resultData.map((s: any) => s.subscriber_id))];
+                const { data: potentialRenewals } = await supabase
+                    .from('subscriptions')
+                    .select(selectStr)
+                    .in('subscriber_id', subscriberIds)
+                    .eq('organization_id', (authResult as any).context.organizationId)
+                    .or('status.eq.active,status.eq.pending');
+
+                if (potentialRenewals && potentialRenewals.length > 0) {
+                    // Add potential renewals to the pool for deduplication
+                    // We'll use a Map to merge them, newer ones overwrite older ones 
+                    // (but we already have deduplication logic below, so just add them to resultData)
+                    resultData = [...resultData, ...potentialRenewals];
+                }
+            }
+
             const subscriberStatusMap: Record<string, any> = {};
             const ranks: Record<string, number> = { active: 3, pending: 2, expired: 1, cancelled: 0 };
 
@@ -188,6 +213,21 @@ export async function GET(request: NextRequest) {
                 }
             });
             resultData = Object.values(subscriberStatusMap);
+
+            // If it was an expiringSoon filter, we must now re-filter to ensure the "best" 
+            // subscription is actually in the expiring window.
+            if (expiringSoon) {
+                const today = new Date().toISOString().split('T')[0];
+                const sevenDaysLater = new Date();
+                sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+                const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0];
+
+                resultData = resultData.filter((s: any) =>
+                    s.status === 'active' &&
+                    s.end_date >= today &&
+                    s.end_date <= sevenDaysLaterStr
+                );
+            }
         }
 
         // Apply 'status' filter AFTER deduplication
